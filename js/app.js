@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.1.0';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -249,10 +249,7 @@ async function runProcess() {
       // Scraping failed entirely — continue with pasted JD only
     }
 
-    // Step 3 — Analyze
-    setStep(2);
-
-    // Steps 4-6 — Generate portal (3 AI calls: core → Q&A → quiz)
+    // Steps 3-6 — Generate portal (5 AI calls, 2 run in parallel)
     let portal;
     try {
       portal = await Prompts.generatePortal(
@@ -265,9 +262,10 @@ async function runProcess() {
           glassdoorText: scraped.glassdoorText,
         },
         (phase) => {
-          if (phase === 'core')  setStep(3); // Generating your prep deck
-          if (phase === 'qa')    setStep(4); // Building Q&A and quiz
-          if (phase === 'quiz')  setStep(5); // Configuring mock interview
+          if (phase === 'analyze') setStep(2); // Analyzing fit & gaps
+          if (phase === 'core')    setStep(3); // Generating your prep deck
+          if (phase === 'qa')      setStep(4); // Building Q&A and quiz
+          if (phase === 'quiz')    setStep(5); // Configuring mock interview
         }
       );
     } catch (err) {
