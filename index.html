@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrepMe — AI Interview Prep</title>
+  <link rel="stylesheet" href="css/themes.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- API KEY GATE -->
+  <div id="key-gate" class="gate-overlay">
+    <div class="gate-card">
+      <div class="gate-logo">PrepMe</div>
+      <p class="gate-sub">Enter your Anthropic API key to begin. It's stored only for this session and never sent anywhere except Anthropic's API.</p>
+      <input id="gate-key-input" type="password" class="gate-input" placeholder="sk-ant-..." autocomplete="off" />
+      <button id="gate-submit" class="btn btn-primary">Continue</button>
+      <p class="gate-hint">Don't have a key? Get one at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
+    </div>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="app" class="app hidden">
+
+    <!-- TOP NAV -->
+    <header class="topnav" id="topnav">
+      <div class="nav-brand">PrepMe</div>
+      <nav class="nav-tabs" id="nav-tabs">
+        <button class="ntab active" data-tab="intake">New Prep</button>
+        <button class="ntab" data-tab="overview" data-portal>Overview</button>
+        <button class="ntab" data-tab="jobscope" data-portal>Job Scope</button>
+        <button class="ntab" data-tab="resume" data-portal>Resume Scan</button>
+        <button class="ntab" data-tab="interviewer" data-portal>Interviewer</button>
+        <button class="ntab" data-tab="edge" data-portal>Your Edge</button>
+        <button class="ntab" data-tab="qa" data-portal>Q&amp;A Prep</button>
+        <button class="ntab" data-tab="quiz" data-portal>Quiz</button>
+        <button class="ntab" data-tab="mock" data-portal>Mock Interview</button>
+      </nav>
+      <div class="nav-actions">
+        <button id="profiles-btn" class="btn btn-ghost btn-sm">Saved Preps</button>
+        <button id="clear-key-btn" class="btn btn-ghost btn-sm">API Key</button>
+      </div>
+    </header>
+
+    <!-- PAGES -->
+    <main id="pages">
+
+      <!-- INTAKE PAGE -->
+      <section class="page on" id="page-intake">
+        <div class="page-inner">
+          <h1 class="pg-title">Start Your <span>Prep</span></h1>
+          <p class="pg-sub">Provide your job materials and we'll build a personalized interview prep workspace.</p>
+
+          <div class="intake-grid">
+
+            <!-- JD Section -->
+            <div class="intake-section">
+              <div class="sec-label">Job Description <span class="badge-required">Required</span></div>
+              <div class="field-group">
+                <input id="jd-url" type="url" class="field-input" placeholder="Paste job posting URL (optional)" />
+                <div class="field-divider">or</div>
+                <textarea id="jd-text" class="field-textarea" rows="6" placeholder="Paste the full job description here..."></textarea>
+              </div>
+            </div>
+
+            <!-- Resume Section -->
+            <div class="intake-section">
+              <div class="sec-label">Resume <span class="badge-required">Required</span></div>
+              <div id="resume-drop" class="dropzone" data-target="resume">
+                <div class="dropzone-icon">↑</div>
+                <div class="dropzone-text">Drop your resume here or <span class="dropzone-link">browse</span></div>
+                <div class="dropzone-hint">PDF, DOCX, or TXT</div>
+                <input type="file" class="dropzone-input" accept=".pdf,.docx,.txt" />
+              </div>
+              <div id="resume-file-name" class="file-name hidden"></div>
+            </div>
+
+            <!-- Optional: LinkedIn -->
+            <div class="intake-section">
+              <div class="sec-label">Employer / Interviewer LinkedIn <span class="badge-optional">Optional</span></div>
+              <input id="linkedin-url" type="url" class="field-input" placeholder="https://linkedin.com/in/..." />
+              <p class="field-hint">Used to personalize the interviewer profile and question style.</p>
+            </div>
+
+            <!-- Optional: Cover Letter -->
+            <div class="intake-section">
+              <div class="sec-label">Cover Letter <span class="badge-optional">Optional</span></div>
+              <div id="cover-drop" class="dropzone" data-target="cover">
+                <div class="dropzone-icon">↑</div>
+                <div class="dropzone-text">Drop your cover letter or <span class="dropzone-link">browse</span></div>
+                <div class="dropzone-hint">PDF, DOCX, or TXT</div>
+                <input type="file" class="dropzone-input" accept=".pdf,.docx,.txt" />
+              </div>
+              <div id="cover-file-name" class="file-name hidden"></div>
+            </div>
+
+            <!-- Optional: Glassdoor -->
+            <div class="intake-section">
+              <div class="sec-label">Glassdoor Company Page <span class="badge-optional">Optional</span></div>
+              <input id="glassdoor-url" type="url" class="field-input" placeholder="https://www.glassdoor.com/Overview/..." />
+              <p class="field-hint">Don't have it? <a class="field-link" href="https://www.google.com/search?q=glassdoor+company+reviews" target="_blank" rel="noopener">Search on Google: [Company Name] Glassdoor reviews</a></p>
+            </div>
+
+          </div>
+
+          <div class="intake-footer">
+            <button id="process-btn" class="btn btn-primary btn-lg">Generate My Prep Workspace</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROCESSING STATE -->
+      <section class="page" id="page-processing">
+        <div class="page-inner processing-center">
+          <div class="processing-icon">⚡</div>
+          <h2 class="processing-title">Building your prep workspace...</h2>
+          <div class="processing-steps" id="processing-steps">
+            <div class="proc-step" id="proc-parse">Parsing your documents</div>
+            <div class="proc-step" id="proc-scrape">Fetching job & company data</div>
+            <div class="proc-step" id="proc-analyze">Analyzing fit & gaps</div>
+            <div class="proc-step" id="proc-generate">Generating your prep deck</div>
+            <div class="proc-step" id="proc-qa">Building Q&amp;A and quiz</div>
+            <div class="proc-step" id="proc-mock">Configuring mock interview</div>
+          </div>
+          <p class="processing-note">This takes about 30–60 seconds.</p>
+        </div>
+      </section>
+
+      <!-- OVERVIEW PAGE -->
+      <section class="page" id="page-overview">
+        <div class="page-inner" id="content-overview"></div>
+      </section>
+
+      <!-- JOB SCOPE PAGE -->
+      <section class="page" id="page-jobscope">
+        <div class="page-inner" id="content-jobscope"></div>
+      </section>
+
+      <!-- RESUME SCAN PAGE -->
+      <section class="page" id="page-resume">
+        <div class="page-inner" id="content-resume"></div>
+      </section>
+
+      <!-- INTERVIEWER PAGE -->
+      <section class="page" id="page-interviewer">
+        <div class="page-inner" id="content-interviewer"></div>
+      </section>
+
+      <!-- YOUR EDGE PAGE -->
+      <section class="page" id="page-edge">
+        <div class="page-inner" id="content-edge"></div>
+      </section>
+
+      <!-- Q&A PREP PAGE -->
+      <section class="page" id="page-qa">
+        <div class="page-inner" id="content-qa"></div>
+      </section>
+
+      <!-- QUIZ PAGE -->
+      <section class="page" id="page-quiz">
+        <div class="page-inner" id="content-quiz"></div>
+      </section>
+
+      <!-- MOCK INTERVIEW PAGE -->
+      <section class="page mock-page" id="page-mock">
+        <div class="mock-header" id="mock-header"></div>
+        <div class="mock-messages" id="mock-messages"></div>
+        <div class="mock-input-bar" id="mock-input-bar">
+          <textarea id="mock-input" class="mock-textarea" placeholder="Type your answer..." rows="1"></textarea>
+          <button id="mock-send" class="btn btn-primary">Send</button>
+          <button id="mock-end" class="btn btn-ghost">End &amp; Score</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- PROFILES DRAWER -->
+    <div id="profiles-overlay" class="overlay hidden"></div>
+    <aside id="profiles-drawer" class="drawer hidden">
+      <div class="drawer-header">
+        <span class="drawer-title">Saved Preps</span>
+        <button id="profiles-close" class="icon-btn">✕</button>
+      </div>
+      <div id="profiles-list" class="drawer-body"></div>
+    </aside>
+
+    <!-- SCORE MODAL -->
+    <div id="score-overlay" class="overlay hidden"></div>
+    <div id="score-modal" class="modal hidden">
+      <div class="modal-header">
+        <span class="modal-title">Interview Score</span>
+        <button id="score-close" class="icon-btn">✕</button>
+      </div>
+      <div id="score-body" class="modal-body"></div>
+    </div>
+
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/parsers.js"></script>
+  <script src="js/scraper.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/prompts.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/mock.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
