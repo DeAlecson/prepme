@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.3';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -142,10 +142,15 @@ async function runProcess() {
   try {
     // Step 1 — Parse files
     setStep(0);
-    const [resumeText, coverText] = await Promise.all([
-      Parsers.parseFile(resumeDrop._file),
-      coverDrop._file ? Parsers.parseFile(coverDrop._file) : Promise.resolve(null),
-    ]);
+    let resumeText, coverText;
+    try {
+      [resumeText, coverText] = await Promise.all([
+        Parsers.parseFile(resumeDrop._file),
+        coverDrop._file ? Parsers.parseFile(coverDrop._file) : Promise.resolve(null),
+      ]);
+    } catch (err) {
+      throw new Error(`File parsing failed: ${err.message}`);
+    }
 
     // Step 2 — Scrape URLs (non-fatal — failures fall back to null)
     setStep(1);
@@ -156,27 +161,32 @@ async function runProcess() {
       // Scraping failed entirely — continue with pasted JD only
     }
 
-    // Step 3 — Analyze (part of generation)
+    // Step 3 — Analyze
     setStep(2);
 
     // Step 4 — Generate portal
     setStep(3);
-    const portal = await Prompts.generatePortal({
-      jdText: scraped.jdText,
-      pastedJD: jdText,
-      resumeText,
-      coverText,
-      linkedinText: scraped.linkedinText,
-      glassdoorText: scraped.glassdoorText,
-    });
+    let portal;
+    try {
+      portal = await Prompts.generatePortal({
+        jdText: scraped.jdText,
+        pastedJD: jdText,
+        resumeText,
+        coverText,
+        linkedinText: scraped.linkedinText,
+        glassdoorText: scraped.glassdoorText,
+      });
+    } catch (err) {
+      throw new Error(`AI generation failed: ${err.message}`);
+    }
 
-    // Step 5 — Q&A ready (included in portal generation)
+    // Step 5 — Q&A ready
     setStep(4);
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 300));
 
     // Step 6 — Mock config ready
     setStep(5);
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 300));
 
     // Save profile
     const profile = {

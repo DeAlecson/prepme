@@ -11,14 +11,17 @@ const Parsers = {
   },
 
   async parsePDF(file) {
-    // Dynamically load pdf.js from CDN
     if (!window.pdfjsLib) {
-      await this._loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      await this._loadScript('https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js');
     }
+    // Set worker using the same version that actually loaded
+    const lib = window.pdfjsLib;
+    if (!lib) throw new Error('PDF library failed to load. Try a TXT or DOCX file instead.');
+    lib.GlobalWorkerOptions.workerSrc =
+      `https://unpkg.com/pdfjs-dist@${lib.version}/build/pdf.worker.min.js`;
+
     const buffer = await readFileAsArrayBuffer(file);
-    const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+    const pdf = await lib.getDocument({ data: buffer }).promise;
     const pages = [];
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
