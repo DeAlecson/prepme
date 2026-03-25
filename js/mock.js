@@ -9,38 +9,132 @@ const Mock = {
   started: false,
   ended: false,
 
+  // TTS state
+  ttsEnabled: true,
+  _ttsReady: false,
+  _ttsVoices: [],
+
   MODES: ['Junior', 'Mid', 'Senior', 'Recruiter Screen', 'Hiring Manager', 'Technical Deep Dive'],
 
+  // ── TTS Engine ────────────────────────────────────────
+  _initTTS() {
+    if (this._ttsReady || !window.speechSynthesis) return;
+    this._ttsReady = true;
+    this._ttsVoices = window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      this._ttsVoices = window.speechSynthesis.getVoices();
+    };
+    // Chrome bug: speechSynthesis pauses after ~15s — keep it alive
+    setInterval(() => {
+      if (this.ttsEnabled && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000);
+  },
+
+  toggleTTS() {
+    this.ttsEnabled = !this.ttsEnabled;
+    const btn = $('tts-btn');
+    if (!btn) return;
+    if (this.ttsEnabled) {
+      btn.textContent = '🔊 Voice On';
+      btn.classList.add('tts-on');
+    } else {
+      window.speechSynthesis.cancel();
+      btn.textContent = '🔇 Voice Off';
+      btn.classList.remove('tts-on');
+    }
+  },
+
+  speakText(text) {
+    if (!this.ttsEnabled || !text?.trim() || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    // Strip markdown formatting
+    const clean = text
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_{1,2}([^_]+)_{1,2}/g, '$1')
+      .replace(/#+\s/g, '')
+      .trim();
+    if (!clean) return;
+
+    const voices = this._ttsVoices.length
+      ? this._ttsVoices
+      : window.speechSynthesis.getVoices();
+
+    // Prefer English male voice; fallback to en-SG, en-GB, en-US, any English
+    const voice = voices.find(v =>
+      v.lang.startsWith('en') &&
+      v.name.toLowerCase().includes('male') &&
+      !v.name.toLowerCase().includes('female')
+    ) || voices.find(v =>
+      v.lang.startsWith('en-SG') || v.lang.startsWith('en-GB') || v.lang.startsWith('en-US')
+    ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+
+    // Split into sentences for more natural phrasing
+    const sentences = clean.match(/[^.!?]+[.!?]+/g) || [clean];
+    const total = sentences.length;
+    let done = 0;
+    const btn = $('tts-btn');
+
+    sentences.forEach((sentence, idx) => {
+      const utt = new SpeechSynthesisUtterance(sentence.trim());
+      utt.lang = 'en-SG';
+      utt.rate = 0.95;
+      utt.pitch = 1.0;
+      utt.volume = 1.0;
+      if (voice) utt.voice = voice;
+
+      utt.onstart = () => {
+        if (idx === 0 && btn) btn.textContent = '🔊 Speaking…';
+      };
+      utt.onend = () => {
+        done++;
+        if (done === total && btn && this.ttsEnabled) btn.textContent = '🔊 Voice On';
+      };
+      utt.onerror = () => {
+        if (btn && this.ttsEnabled) btn.textContent = '🔊 Voice On';
+      };
+      window.speechSynthesis.speak(utt);
+    });
+  },
+
+  // ── Init & Shell ──────────────────────────────────────
   init(portal) {
     this.interviewer = portal.interviewer;
     this.role = portal.meta?.role || 'this role';
     this.company = portal.meta?.company || 'the company';
-    this.openingQuestion = portal.mockConfig?.openingQuestion || `Tell me about yourself and why you're interested in this role.`;
+    this.openingQuestion = portal.mockConfig?.openingQuestion
+      || `Tell me about yourself and why you're interested in this role.`;
     this.messages = [];
     this.started = false;
     this.ended = false;
+    this._initTTS();
     this.renderShell();
   },
 
   renderShell() {
     const iv = this.interviewer || {};
 
-    // Header
     $('mock-header').innerHTML = `
       <div class="mock-avatar">${escapeHTML(iv.emoji || '👤')}</div>
-      <div>
+      <div class="mock-interviewer-info">
         <div class="mock-interviewer-name">${escapeHTML(iv.name || 'Interviewer')}</div>
         <div class="mock-interviewer-role">${escapeHTML(iv.title || 'Hiring Manager')}</div>
       </div>
       <div class="mock-mode-select" id="mock-mode-select">
-        ${this.MODES.map(m => `<button class="mode-btn ${m === this.mode ? 'active' : ''}" onclick="Mock.setMode('${m}')">${escapeHTML(m)}</button>`).join('')}
+        ${this.MODES.map(m =>
+          `<button class="mode-btn ${m === this.mode ? 'active' : ''}" onclick="Mock.setMode('${m}')">${escapeHTML(m)}</button>`
+        ).join('')}
       </div>
-      <div class="mock-status">
+      <div class="mock-controls">
+        <button class="tts-btn tts-on" id="tts-btn" onclick="Mock.toggleTTS()">🔊 Voice On</button>
         <span class="status-chip" id="mock-status-chip">${this.started ? 'In Progress' : 'Ready'}</span>
       </div>
     `;
 
-    // Empty state
     $('mock-messages').innerHTML = `
       <div class="mock-empty" id="mock-empty">
         <div class="mock-empty-icon">${escapeHTML(iv.emoji || '🎤')}</div>
@@ -50,9 +144,8 @@ const Mock = {
       </div>
     `;
 
-    // Input bar state
-    $('mock-send').onclick = () => Mock.sendMessage();
-    $('mock-end').onclick = () => Mock.endInterview();
+    $('mock-send').onclick   = () => Mock.sendMessage();
+    $('mock-end').onclick    = () => Mock.endInterview();
     $('mock-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); Mock.sendMessage(); }
     });
@@ -64,6 +157,7 @@ const Mock = {
     $$('.mode-btn').forEach(b => b.classList.toggle('active', b.textContent === mode));
   },
 
+  // ── Interview Flow ────────────────────────────────────
   async start() {
     this.started = true;
     this.messages = [];
@@ -73,6 +167,7 @@ const Mock = {
     const openingMsg = this.openingQuestion;
     this.addMessage('interviewer', openingMsg);
     this.messages.push({ role: 'assistant', content: openingMsg });
+    this.speakText(openingMsg);
   },
 
   async sendMessage() {
@@ -88,10 +183,8 @@ const Mock = {
     this.messages.push({ role: 'user', content: text });
 
     // Typing indicator
-    const typingId = 'typing-' + Date.now();
     const typingEl = document.createElement('div');
-    typingEl.className = 'msg interviewer';
-    typingEl.id = typingId;
+    typingEl.className = 'msg interviewer typing-msg';
     typingEl.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
     $('mock-messages').appendChild(typingEl);
     this.scrollToBottom();
@@ -100,14 +193,19 @@ const Mock = {
       const systemPrompt = Prompts.SYSTEM_MOCK(this.interviewer, this.role, this.company) +
         `\nInterview mode: ${this.mode}. Adjust depth and seniority expectations accordingly.`;
 
-      // Build message history for context
-      const apiMessages = this.messages.slice(-10); // last 10 for context window
+      const apiMessages = this.messages.slice(-10);
+
+      // Capture token baseline before call
+      const tokensBefore = AI.session.inputTokens + AI.session.outputTokens;
 
       let responseText = '';
       const responseBubble = document.createElement('div');
       responseBubble.className = 'msg interviewer';
-      responseBubble.innerHTML = `<div class="msg-name">${escapeHTML(this.interviewer?.name || 'Interviewer')}</div><div class="msg-bubble" id="stream-bubble"></div>`;
-
+      responseBubble.innerHTML = `
+        <div class="msg-name">${escapeHTML(this.interviewer?.name || 'Interviewer')}</div>
+        <div class="msg-bubble" id="stream-bubble"></div>
+        <div class="msg-tokens" id="stream-tokens"></div>
+      `;
       typingEl.replaceWith(responseBubble);
       const bubble = $('stream-bubble');
 
@@ -117,7 +215,20 @@ const Mock = {
         this.scrollToBottom();
       });
 
+      // Show per-message token cost
+      const tokensAfter = AI.session.inputTokens + AI.session.outputTokens;
+      const msgTokens = tokensAfter - tokensBefore;
+      const msgCost = msgTokens * ((AI.PRICE_INPUT + AI.PRICE_OUTPUT) / 2);
+      const tokenBadge = document.getElementById('stream-tokens');
+      if (tokenBadge && msgTokens > 0) {
+        tokenBadge.textContent = `~${msgTokens.toLocaleString()} tokens · $${msgCost.toFixed(4)}`;
+      }
+      tokenBadge?.removeAttribute('id'); // clean up id so next message can reuse it
+
       this.messages.push({ role: 'assistant', content: responseText });
+
+      // Speak the response after streaming completes
+      this.speakText(responseText);
 
     } catch (err) {
       typingEl.remove();
@@ -145,11 +256,15 @@ const Mock = {
     msgs.scrollTop = msgs.scrollHeight;
   },
 
+  // ── End & Score ───────────────────────────────────────
   async endInterview() {
     if (!this.started || this.messages.length < 2) {
       toast('Have at least one exchange before ending.', 'error');
       return;
     }
+    // Stop TTS before scoring
+    window.speechSynthesis?.cancel();
+
     this.ended = true;
     $('mock-status-chip').textContent = 'Scoring...';
     $('mock-send').disabled = true;

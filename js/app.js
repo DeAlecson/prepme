@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.1.3';
+const APP_VERSION = '1.1.4';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
