@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -193,15 +193,38 @@ async function runProcess() {
   AI.resetSession();
   switchTab('processing');
   const steps = ['proc-parse', 'proc-scrape', 'proc-analyze', 'proc-generate', 'proc-qa', 'proc-mock'];
-  let stepIdx = 0;
+  const stepTimers = {};
+  let timerInterval = null;
 
   function setStep(i) {
+    const now = Date.now();
     steps.forEach((s, si) => {
       const el = $(s);
-      if (si < i) el.className = 'proc-step done';
-      else if (si === i) el.className = 'proc-step active';
-      else el.className = 'proc-step';
+      if (si < i) {
+        el.className = 'proc-step done';
+        const elapsed = stepTimers[si] ? ((now - stepTimers[si]) / 1000).toFixed(1) : null;
+        const timerEl = el.querySelector('.proc-timer');
+        if (timerEl && elapsed) timerEl.textContent = `${elapsed}s`;
+      } else if (si === i) {
+        el.className = 'proc-step active';
+        stepTimers[i] = now;
+        // Start live tick for this step
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          const timerEl = el.querySelector('.proc-timer');
+          if (timerEl) timerEl.textContent = `${((Date.now() - stepTimers[i]) / 1000).toFixed(1)}s`;
+        }, 100);
+      } else {
+        el.className = 'proc-step';
+        const timerEl = el.querySelector('.proc-timer');
+        if (timerEl) timerEl.textContent = '';
+      }
     });
+  }
+
+  function stopTimers() {
+    clearInterval(timerInterval);
+    timerInterval = null;
   }
 
   try {
@@ -229,29 +252,29 @@ async function runProcess() {
     // Step 3 — Analyze
     setStep(2);
 
-    // Step 4 — Generate portal
-    setStep(3);
+    // Steps 4-6 — Generate portal (3 AI calls: core → Q&A → quiz)
     let portal;
     try {
-      portal = await Prompts.generatePortal({
-        jdText: scraped.jdText,
-        pastedJD: jdText,
-        resumeText,
-        coverText,
-        linkedinText: scraped.linkedinText,
-        glassdoorText: scraped.glassdoorText,
-      });
+      portal = await Prompts.generatePortal(
+        {
+          jdText: scraped.jdText,
+          pastedJD: jdText,
+          resumeText,
+          coverText,
+          linkedinText: scraped.linkedinText,
+          glassdoorText: scraped.glassdoorText,
+        },
+        (phase) => {
+          if (phase === 'core')  setStep(3); // Generating your prep deck
+          if (phase === 'qa')    setStep(4); // Building Q&A and quiz
+          if (phase === 'quiz')  setStep(5); // Configuring mock interview
+        }
+      );
     } catch (err) {
       throw new Error(`AI generation failed: ${err.message}`);
     }
 
-    // Step 5 — Q&A ready
-    setStep(4);
-    await new Promise(r => setTimeout(r, 300));
-
-    // Step 6 — Mock config ready
-    setStep(5);
-    await new Promise(r => setTimeout(r, 300));
+    stopTimers();
 
     // Save profile
     const profile = {
@@ -271,6 +294,7 @@ async function runProcess() {
     switchTab('overview');
 
   } catch (err) {
+    stopTimers();
     console.error(err);
     toast(err.message || 'Something went wrong. Check your API key and try again.', 'error');
     switchTab('intake');

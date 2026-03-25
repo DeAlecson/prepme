@@ -107,13 +107,25 @@ const AI = {
 
   async callJSON(systemPrompt, userContent, maxTokens = 4096) {
     const text = await this.call(systemPrompt, userContent, maxTokens);
-    const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const jsonStr = match ? match[1] : text;
-    try {
-      return JSON.parse(jsonStr.trim());
-    } catch {
-      throw new Error('AI returned malformed JSON. Please try again.');
+
+    // Strategy 1: extract from ```json ... ``` block
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenced) {
+      try { return JSON.parse(fenced[1].trim()); } catch { /* fall through */ }
     }
+
+    // Strategy 2: parse the whole text directly
+    try { return JSON.parse(text.trim()); } catch { /* fall through */ }
+
+    // Strategy 3: find the outermost { ... } block
+    const start = text.indexOf('{');
+    const end   = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      try { return JSON.parse(text.slice(start, end + 1)); } catch { /* fall through */ }
+    }
+
+    console.error('[PrepMe] Raw AI response that failed JSON parse:\n', text);
+    throw new Error('AI returned malformed JSON. Raw response logged to console.');
   },
 
   // Ping test — checks API key validity without wasting tokens

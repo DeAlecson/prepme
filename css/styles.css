@@ -274,6 +274,10 @@ input, textarea { font-family: inherit; }
 .proc-step.active::before { content: '◉'; color: var(--accent-light); animation: pulse 1s ease infinite; }
 .proc-step.done { color: var(--green); border-color: rgba(16,185,129,0.25); background: var(--green-dim); }
 .proc-step.done::before { content: '✓'; color: var(--green); animation: none; }
+.proc-label { flex: 1; }
+.proc-timer { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; opacity: 0.6; }
+.proc-step.active .proc-timer { color: var(--accent-light); opacity: 1; }
+.proc-step.done .proc-timer { color: var(--green); opacity: 1; }
 .processing-note { font-size: 12px; color: var(--text-faint); }
 
 /* ── Q&A Accordion ── */
