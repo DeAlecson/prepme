@@ -1,0 +1,44 @@
+ALEX TAN WEI MING
+Singapore | alex.tan@email.com | +65 9123 4567 | linkedin.com/in/alextanwm
+
+PROFESSIONAL SUMMARY
+Results-driven Product Manager with 5 years of experience in telecommunications and enterprise SaaS. Led cross-functional teams of up to 12 across product, engineering, and commercial to deliver features serving 2M+ customers. Passionate about data-informed product decisions and building products that simplify complex user experiences.
+
+WORK EXPERIENCE
+
+Product Manager — StarHub Ltd, Singapore
+Jan 2021 – Present
+
+- Owned the roadmap for StarHub's MyAccount self-service app (1.8M active users), driving a 34% reduction in call centre volume through self-serve feature launches
+- Led end-to-end delivery of a new bill dispute resolution flow, reducing resolution time from 14 days to 3 days and improving NPS by 18 points
+- Partnered with Data & Analytics team to build a churn prediction dashboard, enabling commercial team to proactively retain 12,000 at-risk accounts quarterly
+- Defined OKRs for 2 product squads, ran weekly sprint reviews, and maintained a 90-day rolling roadmap aligned to business priorities
+- Worked with legal and compliance teams to ensure PDPA compliance across all new data collection touchpoints
+
+Associate Product Manager — Circles.Life, Singapore
+Jul 2019 – Dec 2020
+
+- Supported launch of Circles.Life's referral programme, contributing to 40,000 new subscriber acquisitions in 6 months
+- Ran A/B tests on onboarding flows, improving day-7 activation rate from 51% to 67%
+- Coordinated with engineering to ship 3 mobile app releases per quarter, managing release notes, QA sign-off, and stakeholder comms
+- Conducted 30+ user interviews and synthesised findings into product briefs used to prioritise backlog items
+
+Business Analyst Intern — DBS Bank, Singapore
+Jan 2019 – Jun 2019
+
+- Mapped current-state customer journeys for DBS PayLah! merchant onboarding
+- Built dashboards in Tableau tracking merchant activation funnels for the SME banking team
+
+EDUCATION
+
+Bachelor of Business Administration (Information Systems), NUS Business School
+National University of Singapore | Graduated May 2019 | CAP 4.21/5.0
+
+SKILLS
+Product: Roadmapping, OKR setting, backlog prioritisation, user story writing, A/B testing, usability testing
+Tools: Jira, Confluence, Figma, Amplitude, Mixpanel, Tableau, SQL (intermediate), Google Analytics
+Domain: Telecommunications, consumer mobile apps, enterprise SaaS, digital payments
+
+CERTIFICATIONS
+- Certified Scrum Product Owner (CSPO) — Scrum Alliance, 2022
+- Google Analytics Individual Qualification — 2021

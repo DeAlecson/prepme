@@ -6,12 +6,10 @@ const Scraper = {
   async fetchUrl(url) {
     if (!url || !url.startsWith('http')) return null;
     try {
-      const res = await fetch(this.JINA_BASE + encodeURIComponent(url), {
-        headers: { 'Accept': 'text/plain' },
-      });
+      // No custom headers — keeps it a simple CORS request (no preflight)
+      const res = await fetch(this.JINA_BASE + url);
       if (!res.ok) return null;
       const text = await res.text();
-      // Return null if content is suspiciously short (blocked/empty)
       return text.length > 200 ? text : null;
     } catch {
       return null;

@@ -129,9 +129,14 @@ async function runProcess() {
       coverDrop._file ? Parsers.parseFile(coverDrop._file) : Promise.resolve(null),
     ]);
 
-    // Step 2 — Scrape URLs
+    // Step 2 — Scrape URLs (non-fatal — failures fall back to null)
     setStep(1);
-    const scraped = await Scraper.scrapeAll({ jdUrl, linkedinUrl, glassdoorUrl });
+    let scraped = { jdText: null, linkedinText: null, glassdoorText: null };
+    try {
+      scraped = await Scraper.scrapeAll({ jdUrl, linkedinUrl, glassdoorUrl });
+    } catch {
+      // Scraping failed entirely — continue with pasted JD only
+    }
 
     // Step 3 — Analyze (part of generation)
     setStep(2);
