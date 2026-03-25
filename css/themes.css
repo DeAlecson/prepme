@@ -31,7 +31,7 @@
   --blue-dim: rgba(59, 130, 246, 0.12);
 
   /* Layout */
-  --nav-h: 52px;
+  --nav-h: 96px; /* 48px top bar + 8+8 padding + ~32px tab strip */
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 16px;

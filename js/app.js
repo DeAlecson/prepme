@@ -1,5 +1,20 @@
 /* ── App Boot ── */
 
+const APP_VERSION = '1.0.2';
+
+function initVersion() {
+  const stored = localStorage.getItem('prepme_version');
+  if (stored !== APP_VERSION) {
+    // Clear all prepme_ keys on version bump
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('prepme_'))
+      .forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('prepme_version', APP_VERSION);
+  }
+  const el = $('footer-version');
+  if (el) el.textContent = `v${APP_VERSION}`;
+}
+
 let currentPortal = null;
 
 // ── API Key Gate ──
@@ -53,6 +68,9 @@ function switchTab(tabId) {
     p.classList.toggle('on', isTarget);
     if (tabId === 'mock') p.classList.toggle('mock-page', isTarget);
   });
+  // Hide footer on mock and processing (full-height views)
+  const footer = $('app-footer');
+  if (footer) footer.classList.toggle('hidden', tabId === 'mock' || tabId === 'processing');
 }
 
 function enablePortalTabs() {
@@ -274,4 +292,7 @@ function initApp() {
   initKeyReset();
 }
 
-document.addEventListener('DOMContentLoaded', initGate);
+document.addEventListener('DOMContentLoaded', () => {
+  initVersion();
+  initGate();
+});

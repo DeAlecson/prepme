@@ -27,8 +27,20 @@
 
     <!-- TOP NAV -->
     <header class="topnav" id="topnav">
-      <div class="nav-brand">PrepMe</div>
-      <nav class="nav-tabs" id="nav-tabs">
+      <div class="nav-top">
+        <div class="nav-brand">PrepMe</div>
+        <div class="nav-actions">
+          <button id="profiles-btn" class="btn btn-ghost btn-sm">
+            <span class="nav-action-icon">☰</span>
+            <span class="nav-action-label">Saved Preps</span>
+          </button>
+          <button id="clear-key-btn" class="btn btn-ghost btn-sm">
+            <span class="nav-action-icon">🔑</span>
+            <span class="nav-action-label">API Key</span>
+          </button>
+        </div>
+      </div>
+      <nav class="nav-tab-strip" id="nav-tabs">
         <button class="ntab active" data-tab="intake">New Prep</button>
         <button class="ntab" data-tab="overview" data-portal>Overview</button>
         <button class="ntab" data-tab="jobscope" data-portal>Job Scope</button>
@@ -39,10 +51,6 @@
         <button class="ntab" data-tab="quiz" data-portal>Quiz</button>
         <button class="ntab" data-tab="mock" data-portal>Mock Interview</button>
       </nav>
-      <div class="nav-actions">
-        <button id="profiles-btn" class="btn btn-ghost btn-sm">Saved Preps</button>
-        <button id="clear-key-btn" class="btn btn-ghost btn-sm">API Key</button>
-      </div>
     </header>
 
     <!-- PAGES -->
@@ -186,6 +194,15 @@
       </div>
       <div id="profiles-list" class="drawer-body"></div>
     </aside>
+
+    <!-- FOOTER -->
+    <footer class="app-footer" id="app-footer">
+      <span>PrepMe</span>
+      <span class="footer-dot">·</span>
+      <span id="footer-version">v1.0.0</span>
+      <span class="footer-dot">·</span>
+      <span>Powered by Claude</span>
+    </footer>
 
     <!-- SCORE MODAL -->
     <div id="score-overlay" class="overlay hidden"></div>
