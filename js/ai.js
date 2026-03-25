@@ -105,24 +105,71 @@ const AI = {
     return data.content[0].text;
   },
 
+  // Attempt to fix common Claude JSON mistakes before giving up
+  _repairJSON(raw) {
+    let t = raw;
+
+    // Strip markdown fences if any remain
+    t = t.replace(/^```(?:json)?\s*/m, '').replace(/```\s*$/m, '').trim();
+
+    // Fix 1: missing comma between adjacent string items in arrays
+    // e.g.  "value one"\n  "value two"  →  "value one",\n  "value two"
+    t = t.replace(/"(\s*\n\s*)"/g, '",\n"');
+
+    // Fix 2: missing comma between object/array items on separate lines
+    // e.g.  }\n  {  or  ]\n  [  or  "val"\n  "key":
+    t = t.replace(/([}\]"0-9])\s*\n(\s*[{["a-zA-Z_])/g, (m, a, b) => {
+      // Already has comma? skip
+      return `${a},\n${b}`;
+    });
+
+    // Fix 3: remove duplicate commas introduced above
+    t = t.replace(/,(\s*,)+/g, ',');
+
+    // Fix 4: trailing commas before closing bracket
+    t = t.replace(/,(\s*[}\]])/g, '$1');
+
+    // Fix 5: close unclosed brackets caused by truncation
+    // Strip any trailing incomplete token (partial string or hanging comma)
+    t = t.replace(/,?\s*$/, '');
+    const opens  = (t.match(/\{/g) || []).length;
+    const closes = (t.match(/\}/g) || []).length;
+    const aOpens = (t.match(/\[/g) || []).length;
+    const aClose = (t.match(/\]/g) || []).length;
+    for (let i = 0; i < aOpens - aClose; i++) t += ']';
+    for (let i = 0; i < opens  - closes;  i++) t += '}';
+
+    return t;
+  },
+
   async callJSON(systemPrompt, userContent, maxTokens = 4096) {
     const text = await this.call(systemPrompt, userContent, maxTokens);
 
-    // Strategy 1: extract from ```json ... ``` block
+    const tryParse = (s) => { try { return JSON.parse(s); } catch { return null; } };
+
+    // Strategy 1: fenced ```json block
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (fenced) {
-      try { return JSON.parse(fenced[1].trim()); } catch { /* fall through */ }
+      const r = tryParse(fenced[1].trim()) ?? tryParse(this._repairJSON(fenced[1].trim()));
+      if (r) return r;
     }
 
-    // Strategy 2: parse the whole text directly
-    try { return JSON.parse(text.trim()); } catch { /* fall through */ }
+    // Strategy 2: raw text
+    const r2 = tryParse(text.trim()) ?? tryParse(this._repairJSON(text.trim()));
+    if (r2) return r2;
 
-    // Strategy 3: find the outermost { ... } block
+    // Strategy 3: outermost { ... } block
     const start = text.indexOf('{');
     const end   = text.lastIndexOf('}');
-    if (start !== -1 && end !== -1 && end > start) {
-      try { return JSON.parse(text.slice(start, end + 1)); } catch { /* fall through */ }
+    if (start !== -1 && end > start) {
+      const slice = text.slice(start, end + 1);
+      const r3 = tryParse(slice) ?? tryParse(this._repairJSON(slice));
+      if (r3) return r3;
     }
+
+    // Strategy 4: repair the full raw text (handles truncation)
+    const r4 = tryParse(this._repairJSON(text));
+    if (r4) return r4;
 
     console.error('[PrepMe] Raw AI response that failed JSON parse:\n', text);
     throw new Error('AI returned malformed JSON. Raw response logged to console.');
