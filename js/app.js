@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.6';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -373,7 +373,13 @@ function initKeyReset() {
 }
 
 function openKeyModal() {
-  $('modal-key-input').value  = '';   // never pre-fill key for security
+  const existingKey = Storage.getApiKey();
+  const keyInput = $('modal-key-input');
+  keyInput.value = '';
+  // Show masked hint so user knows a key is already saved
+  keyInput.placeholder = existingKey
+    ? `Key saved (${existingKey.slice(0, 10)}…${existingKey.slice(-4)}) — enter new key to replace`
+    : 'sk-ant-api03-...';
   $('modal-proxy-input').value = Storage.getProxyUrl();
   $('key-modal').classList.remove('hidden');
   $('key-modal-overlay').classList.remove('hidden');

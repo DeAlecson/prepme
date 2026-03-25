@@ -129,6 +129,7 @@ const AI = {
       });
       if (res.status === 401) return { ok: false, error: 'Invalid API key.' };
       if (res.status === 403) return { ok: false, error: 'API key lacks permissions.' };
+      if (res.status === 405) return { ok: false, error: 'Proxy returned 405 — wrong URL or method blocked. Visit your proxy URL in a browser to check it is alive.' };
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
         return { ok: false, error: b?.error?.message || `Error ${res.status}` };

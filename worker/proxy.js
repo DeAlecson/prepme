@@ -22,8 +22,20 @@ export default {
       return new Response(null, { status: 204, headers: CORS });
     }
 
+    // Health check — GET to root confirms worker is alive
+    if (request.method === 'GET') {
+      const url = new URL(request.url);
+      if (url.pathname === '/' || url.pathname === '') {
+        return new Response(JSON.stringify({ status: 'PrepMe proxy is running' }), {
+          status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     if (request.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405, headers: CORS });
+      return new Response(JSON.stringify({ error: 'Method not allowed. Send POST to /v1/messages' }), {
+        status: 405, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
     }
 
     const apiKey = request.headers.get('x-api-key');
