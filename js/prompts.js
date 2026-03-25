@@ -63,16 +63,32 @@ Max: 4 probes, 3 mistakes, 3 achievements, 3 transferable, 3 concerns.`;
     return AI.callJSON(this.SYSTEM, prompt, 3000);
   },
 
-  // ── Call 4: Q&A bank ──
-  async _genQA(inputs) {
-    const prompt = `${this._ctx(inputs)}
+  // ── Call 5a: Q&A bank — first 4 categories ──
+  async _genQA_A(inputs) {
+    const ctx = this._ctx(inputs);
+    const prompt = `${ctx}
 
-Generate a Q&A prep bank. Return ONLY this JSON (no fences, no extra text):
-{"qa":{"groups":[{"category":"<category name>","questions":[{"question":"<string>","whyAsked":"<string>","whatStrongAnswerCovers":"<string>","modelSkeleton":"<string>","followUpTraps":["<string>"],"coachingNotes":"<string>"}]}]}}
+Generate interview Q&A prep. Return ONLY this JSON (no fences, no extra text).
+Keep every string field under 120 characters. Be concise and direct.
+{"groups":[{"category":"<name>","questions":[{"question":"<string>","tip":"<1 sentence: what a strong answer covers>","trap":"<1 follow-up to watch for>","model":"<2 sentence answer structure>"}]}]}
 
-Use exactly these 7 categories: "General Recruiter", "Role-Specific", "Technical/Domain", "Behavioral", "Stakeholder & Conflict", "Execution & Prioritization", "Company Culture".
-4 questions per category, tailored to this specific role and company.`;
-    return AI.callJSON(this.SYSTEM, prompt, 6000);
+Generate exactly these 4 categories with 3 questions each: "General Recruiter", "Role-Specific", "Technical/Domain", "Behavioral".
+Tailor every question specifically to this role and company.`;
+    return AI.callJSON(this.SYSTEM, prompt, 3500);
+  },
+
+  // ── Call 5b: Q&A bank — last 3 categories ──
+  async _genQA_B(inputs) {
+    const ctx = this._ctx(inputs);
+    const prompt = `${ctx}
+
+Generate interview Q&A prep. Return ONLY this JSON (no fences, no extra text).
+Keep every string field under 120 characters. Be concise and direct.
+{"groups":[{"category":"<name>","questions":[{"question":"<string>","tip":"<1 sentence: what a strong answer covers>","trap":"<1 follow-up to watch for>","model":"<2 sentence answer structure>"}]}]}
+
+Generate exactly these 3 categories with 3 questions each: "Stakeholder & Conflict", "Execution & Prioritization", "Company Culture".
+Tailor every question specifically to this role and company.`;
+    return AI.callJSON(this.SYSTEM, prompt, 3000);
   },
 
   // ── Call 5: Quiz ──
@@ -100,13 +116,19 @@ Mix: industry knowledge, role-specific scenarios, and behavioral judgment questi
       this._genPersonality(inputs),
     ]);
 
-    // Step: Building Q&A and quiz (Call 5)
+    // Step: Building Q&A and quiz (Calls 5a+5b+6 all parallel)
     onStep?.('qa');
-    const qaData = await this._genQA(inputs);
+    const [qaA, qaB, quizData] = await Promise.all([
+      this._genQA_A(inputs),
+      this._genQA_B(inputs),
+      this._genQuiz(inputs),
+    ]);
 
-    // Step: Configuring mock interview (Call 6)
-    onStep?.('quiz');
-    const quizData = await this._genQuiz(inputs);
+    // Merge Q&A groups from both calls
+    const qaGroups = [
+      ...(qaA?.groups || []),
+      ...(qaB?.groups || []),
+    ];
 
     return {
       meta:        overviewData.meta            || {},
@@ -116,7 +138,7 @@ Mix: industry knowledge, role-specific scenarios, and behavioral judgment questi
       interviewer: personalityData.interviewer  || {},
       edge:        personalityData.edge         || {},
       mockConfig:  personalityData.mockConfig   || {},
-      qa:          qaData.qa                   || { groups: [] },
+      qa:          { groups: qaGroups },
       quiz:        quizData.quiz               || { questions: [] },
     };
   },

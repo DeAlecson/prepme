@@ -129,9 +129,20 @@ const AI = {
     // Fix 4: trailing commas before closing bracket
     t = t.replace(/,(\s*[}\]])/g, '$1');
 
-    // Fix 5: close unclosed brackets caused by truncation
-    // Strip any trailing incomplete token (partial string or hanging comma)
-    t = t.replace(/,?\s*$/, '');
+    // Fix 5: close unclosed string literal from truncation mid-word
+    // Scan respecting escaped quotes to find the real open/close positions
+    const qPos = [];
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === '\\') { i++; continue; }
+      if (t[i] === '"') qPos.push(i);
+    }
+    if (qPos.length % 2 !== 0) {
+      // Odd = there is an unclosed string — chop at its opening quote
+      t = t.slice(0, qPos[qPos.length - 1]);
+    }
+
+    // Fix 6: close unclosed brackets / objects caused by truncation
+    t = t.replace(/,?\s*$/, ''); // strip trailing comma or whitespace
     const opens  = (t.match(/\{/g) || []).length;
     const closes = (t.match(/\}/g) || []).length;
     const aOpens = (t.match(/\[/g) || []).length;
