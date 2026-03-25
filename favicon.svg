@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Rounded dark background -->
+  <rect width="32" height="32" rx="8" fill="#0e0e11"/>
+
+  <!-- Purple glow blob behind P -->
+  <ellipse cx="15" cy="15" rx="9" ry="9" fill="#7c3aed" opacity="0.15"/>
+
+  <!-- Bold P letterform -->
+  <text x="8" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="800" fill="#a78bfa">P</text>
+
+  <!-- Tiny lightning bolt spark top-right -->
+  <polygon points="21,5 19,11 22,11 20,17 24,9 21,9" fill="#f59e0b"/>
+</svg>
