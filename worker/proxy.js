@@ -11,8 +11,9 @@ const ANTHROPIC_BASE = 'https://api.anthropic.com';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, x-api-key, anthropic-version, anthropic-dangerous-allow-browser',
+  'Access-Control-Max-Age': '86400',
 };
 
 export default {
@@ -32,8 +33,18 @@ export default {
       }
     }
 
+    // Diagnostic ping — POST to /ping confirms worker accepts POST without calling Anthropic
+    if (request.method === 'POST') {
+      const url = new URL(request.url);
+      if (url.pathname === '/ping') {
+        return new Response(JSON.stringify({ status: 'ok', method: 'POST', message: 'Worker is accepting POST requests' }), {
+          status: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     if (request.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed. Send POST to /v1/messages' }), {
+      return new Response(JSON.stringify({ error: 'Method not allowed. Send POST to /v1/messages', receivedMethod: request.method }), {
         status: 405, headers: { ...CORS, 'Content-Type': 'application/json' },
       });
     }
