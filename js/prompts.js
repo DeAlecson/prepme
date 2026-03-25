@@ -41,13 +41,26 @@ Include 4-6 responsibility themes. Be specific to this role.`;
     return AI.callJSON(this.SYSTEM, prompt, 3500);
   },
 
-  // ── Call 3: Resume scan + interviewer + edge ──
-  async _genAnalysis(inputs) {
+  // ── Call 3: Resume scan (focused, concise) ──
+  async _genResumeScan(inputs) {
     const prompt = `${this._ctx(inputs)}
 
-Return ONLY this JSON (no fences, no extra text):
-{"resumeScan":{"matchScore":<0-100>,"strengths":[{"point":"<string>","evidence":"<string>"}],"gaps":[{"gap":"<string>","severity":"high|medium|low","suggestion":"<string>"}],"atsKeywords":{"matched":["<string>"],"missing":["<string>"]},"phrasingSuggestions":[{"original":"<string>","improved":"<string>"}],"storiesWithImpact":["<string>"]},"interviewer":{"name":"<realistic name>","title":"<title>","emoji":"<single emoji>","style":"friendly but structured|direct and pragmatic|technical and detail-focused|senior stakeholder style","background":"<2 sentences>","likelyMindset":"<string>","howToSpeakToThem":"<string>","likelyProbes":["<string>"],"mistakesToAvoid":["<string>"],"isDefault":<true if no LinkedIn data>},"edge":{"strongestAchievements":["<string>"],"transferableExperience":["<string>"],"top3SellingPoints":["<string>"],"top3ConcernsToManage":["<string>"],"addressingGaps":"<string>","thirtySecondIntro":"<string>","sixtySecondPitch":"<string>","closingNarrative":"<string>"},"mockConfig":{"openingQuestion":"<string>","modes":["Junior","Mid","Senior","Recruiter Screen","Hiring Manager","Technical Deep Dive"]}}`;
-    return AI.callJSON(this.SYSTEM, prompt, 4000);
+Return ONLY this JSON (no fences, no extra text). Keep ALL string values under 120 characters — be concise:
+{"resumeScan":{"matchScore":<0-100>,"strengths":[{"point":"<short label>","evidence":"<1 sentence>"}],"gaps":[{"gap":"<short label>","severity":"high|medium|low","suggestion":"<1 sentence tip>"}],"atsKeywords":{"matched":["<keyword>"],"missing":["<keyword>"]},"phrasingSuggestions":[{"original":"<short phrase>","improved":"<short phrase>"}],"storiesWithImpact":["<1 sentence achievement>"]}}
+
+Max: 5 strengths, 5 gaps, 8 matched keywords, 8 missing keywords, 3 phrasing suggestions, 3 impact stories.`;
+    return AI.callJSON(this.SYSTEM, prompt, 3000);
+  },
+
+  // ── Call 4: Interviewer profile + edge + mock config ──
+  async _genPersonality(inputs) {
+    const prompt = `${this._ctx(inputs)}
+
+Return ONLY this JSON (no fences, no extra text). Keep ALL string values under 150 characters — be concise:
+{"interviewer":{"name":"<realistic full name>","title":"<job title>","emoji":"<single emoji>","style":"friendly but structured|direct and pragmatic|technical and detail-focused|senior stakeholder style","background":"<2 short sentences>","likelyMindset":"<1 sentence>","howToSpeakToThem":"<1 sentence>","likelyProbes":["<short question>"],"mistakesToAvoid":["<short tip>"],"isDefault":<true if no LinkedIn provided>},"edge":{"strongestAchievements":["<1 sentence>"],"transferableExperience":["<1 sentence>"],"top3SellingPoints":["<short phrase>"],"top3ConcernsToManage":["<short phrase>"],"addressingGaps":"<2 sentences>","thirtySecondIntro":"<30-second spoken intro>","sixtySecondPitch":"<60-second spoken pitch>","closingNarrative":"<2-3 sentences>"},"mockConfig":{"openingQuestion":"<opening interview question>","modes":["Junior","Mid","Senior","Recruiter Screen","Hiring Manager","Technical Deep Dive"]}}
+
+Max: 4 probes, 3 mistakes, 3 achievements, 3 transferable, 3 concerns.`;
+    return AI.callJSON(this.SYSTEM, prompt, 3000);
   },
 
   // ── Call 4: Q&A bank ──
@@ -73,37 +86,38 @@ Mix: industry knowledge, role-specific scenarios, and behavioral judgment questi
     return AI.callJSON(this.SYSTEM, prompt, 2500);
   },
 
-  // ── Main pipeline: 5 calls, calls 2+3 run in parallel ──
+  // ── Main pipeline: 6 calls — calls 2/3/4 run in parallel ──
   async generatePortal(inputs, onStep) {
-    // Step: Analyzing fit & gaps
+    // Step: Analyzing fit & gaps (Call 1 — overview)
     onStep?.('analyze');
     const overviewData = await this._genOverview(inputs);
 
-    // Step: Generating your prep deck (job scope + analysis in parallel)
+    // Step: Generating your prep deck (Calls 2+3+4 — all parallel)
     onStep?.('core');
-    const [jobScopeData, analysisData] = await Promise.all([
+    const [jobScopeData, resumeScanData, personalityData] = await Promise.all([
       this._genJobScope(inputs),
-      this._genAnalysis(inputs),
+      this._genResumeScan(inputs),
+      this._genPersonality(inputs),
     ]);
 
-    // Step: Building Q&A and quiz
+    // Step: Building Q&A and quiz (Call 5)
     onStep?.('qa');
     const qaData = await this._genQA(inputs);
 
-    // Step: Configuring mock interview
+    // Step: Configuring mock interview (Call 6)
     onStep?.('quiz');
     const quizData = await this._genQuiz(inputs);
 
     return {
-      meta:        overviewData.meta        || {},
-      overview:    overviewData.overview    || {},
-      jobScope:    jobScopeData.jobScope    || {},
-      resumeScan:  analysisData.resumeScan  || {},
-      interviewer: analysisData.interviewer || {},
-      edge:        analysisData.edge        || {},
-      mockConfig:  analysisData.mockConfig  || {},
-      qa:          qaData.qa               || { groups: [] },
-      quiz:        quizData.quiz           || { questions: [] },
+      meta:        overviewData.meta            || {},
+      overview:    overviewData.overview        || {},
+      jobScope:    jobScopeData.jobScope        || {},
+      resumeScan:  resumeScanData.resumeScan    || {},
+      interviewer: personalityData.interviewer  || {},
+      edge:        personalityData.edge         || {},
+      mockConfig:  personalityData.mockConfig   || {},
+      qa:          qaData.qa                   || { groups: [] },
+      quiz:        quizData.quiz               || { questions: [] },
     };
   },
 
