@@ -1,16 +1,8 @@
-/* ── Anthropic API Client ── */
+/* ── Anthropic API Client (via Cloudflare Worker proxy) ── */
 
 const AI = {
-  MODEL: 'claude-haiku-4-5-20251001',
-  DIRECT_URL: 'https://api.anthropic.com/v1/messages',
-
-  get API_URL() {
-    let proxy = Storage.getProxyUrl();
-    if (!proxy) return this.DIRECT_URL;
-    // Normalize — add https:// if bare domain was entered
-    if (!/^https?:\/\//i.test(proxy)) proxy = 'https://' + proxy;
-    return proxy.replace(/\/$/, '') + '/v1/messages';
-  },
+  MODEL:      'claude-haiku-4-5-20251001',
+  WORKER_URL: 'https://prepme.alecson95.workers.dev/v1/messages',
 
   // Pricing per token (Claude Haiku 4.5 approximate)
   PRICE_INPUT:  0.80 / 1_000_000,
@@ -32,7 +24,7 @@ const AI = {
   },
 
   getCost() {
-    const cost = (this.session.inputTokens * this.PRICE_INPUT) +
+    const cost = (this.session.inputTokens  * this.PRICE_INPUT) +
                  (this.session.outputTokens * this.PRICE_OUTPUT);
     return {
       inputTokens:  this.session.inputTokens,
@@ -43,6 +35,7 @@ const AI = {
   },
 
   _updateUsageBar() {
+    if (!Storage.getAdvancedMode()) return; // hidden unless Advanced Mode is on
     const el = document.getElementById('token-bar');
     if (!el) return;
     const c = this.getCost();
@@ -56,44 +49,41 @@ const AI = {
     el.classList.remove('hidden');
   },
 
-  // Estimate tokens from raw text (~4 chars per token)
   estimateTokens(text) {
     return Math.ceil((text || '').length / 4);
   },
 
   _headers() {
+    const jwt = Auth.getJWT();
     return {
-      'Content-Type': 'application/json',
-      'x-api-key': Storage.getApiKey(),
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
+      'Content-Type':  'application/json',
+      'Authorization': jwt ? `Bearer ${jwt}` : '',
     };
   },
 
-  async call(systemPrompt, userContent, maxTokens = 4096) {
-    const key = Storage.getApiKey();
-    if (!key) throw new Error('No API key set.');
+  async call(systemPrompt, userContent, maxTokens = 4096, context = 'api') {
+    if (!Auth.isAuthed()) throw new Error('Not authenticated. Please log in.');
 
     let res;
     try {
-      res = await fetch(this.API_URL, {
+      res = await fetch(this.WORKER_URL, {
         method: 'POST',
         headers: this._headers(),
         body: JSON.stringify({
-          model: this.MODEL,
+          model:      this.MODEL,
           max_tokens: maxTokens,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userContent }],
+          system:     systemPrompt,
+          messages:   [{ role: 'user', content: userContent }],
+          _context:   context, // passed to worker for usage logging
         }),
       });
     } catch (err) {
-      // Network-level failure (CORS, DNS, offline)
-      console.error('[PrepMe] fetch to Anthropic failed:', err);
-      throw new Error(
-        'Cannot reach Anthropic API. This is usually a network or CORS issue. ' +
-        'Open DevTools → Console for details.'
-      );
+      console.error('[PrepMe] fetch to worker failed:', err);
+      throw new Error('Cannot reach the API. Check your connection.');
     }
+
+    if (res.status === 401) throw new Error('Session expired. Please log in again.');
+    if (res.status === 403) throw new Error('Access denied. Contact the admin.');
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -105,80 +95,51 @@ const AI = {
     return data.content[0].text;
   },
 
-  // Attempt to fix common Claude JSON mistakes before giving up
+  // ── JSON repair ─────────────────────────────────────────
   _repairJSON(raw) {
     let t = raw;
-
-    // Strip markdown fences if any remain
     t = t.replace(/^```(?:json)?\s*/m, '').replace(/```\s*$/m, '').trim();
-
-    // Fix 1: missing comma between adjacent string items in arrays
-    // e.g.  "value one"\n  "value two"  →  "value one",\n  "value two"
     t = t.replace(/"(\s*\n\s*)"/g, '",\n"');
-
-    // Fix 2: missing comma between object/array items on separate lines
-    // e.g.  }\n  {  or  ]\n  [  or  "val"\n  "key":
-    t = t.replace(/([}\]"0-9])\s*\n(\s*[{["a-zA-Z_])/g, (m, a, b) => {
-      // Already has comma? skip
-      return `${a},\n${b}`;
-    });
-
-    // Fix 3: remove duplicate commas introduced above
+    t = t.replace(/([}\]"0-9])\s*\n(\s*[{["a-zA-Z_])/g, (m, a, b) => `${a},\n${b}`);
     t = t.replace(/,(\s*,)+/g, ',');
-
-    // Fix 4: trailing commas before closing bracket
     t = t.replace(/,(\s*[}\]])/g, '$1');
 
-    // Fix 5: close unclosed string literal from truncation mid-word
-    // Scan respecting escaped quotes to find the real open/close positions
+    // Fix unclosed string literal
     const qPos = [];
     for (let i = 0; i < t.length; i++) {
       if (t[i] === '\\') { i++; continue; }
       if (t[i] === '"') qPos.push(i);
     }
-    if (qPos.length % 2 !== 0) {
-      // Odd = there is an unclosed string — chop at its opening quote
-      t = t.slice(0, qPos[qPos.length - 1]);
-    }
+    if (qPos.length % 2 !== 0) t = t.slice(0, qPos[qPos.length - 1]);
 
-    // Fix 6: close unclosed brackets / objects caused by truncation
-    t = t.replace(/,?\s*$/, ''); // strip trailing comma or whitespace
+    t = t.replace(/,?\s*$/, '');
     const opens  = (t.match(/\{/g) || []).length;
     const closes = (t.match(/\}/g) || []).length;
     const aOpens = (t.match(/\[/g) || []).length;
     const aClose = (t.match(/\]/g) || []).length;
     for (let i = 0; i < aOpens - aClose; i++) t += ']';
     for (let i = 0; i < opens  - closes;  i++) t += '}';
-
     return t;
   },
 
-  async callJSON(systemPrompt, userContent, maxTokens = 4096) {
-    const text = await this.call(systemPrompt, userContent, maxTokens);
+  async callJSON(systemPrompt, userContent, maxTokens = 4096, context = 'api') {
+    const text = await this.call(systemPrompt, userContent, maxTokens, context);
+    const tryParse = s => { try { return JSON.parse(s); } catch { return null; } };
 
-    const tryParse = (s) => { try { return JSON.parse(s); } catch { return null; } };
-
-    // Strategy 1: fenced ```json block
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (fenced) {
       const r = tryParse(fenced[1].trim()) ?? tryParse(this._repairJSON(fenced[1].trim()));
       if (r) return r;
     }
-
-    // Strategy 2: raw text
     const r2 = tryParse(text.trim()) ?? tryParse(this._repairJSON(text.trim()));
     if (r2) return r2;
 
-    // Strategy 3: outermost { ... } block
-    const start = text.indexOf('{');
-    const end   = text.lastIndexOf('}');
+    const start = text.indexOf('{'), end = text.lastIndexOf('}');
     if (start !== -1 && end > start) {
       const slice = text.slice(start, end + 1);
       const r3 = tryParse(slice) ?? tryParse(this._repairJSON(slice));
       if (r3) return r3;
     }
-
-    // Strategy 4: repair the full raw text (handles truncation)
     const r4 = tryParse(this._repairJSON(text));
     if (r4) return r4;
 
@@ -186,72 +147,43 @@ const AI = {
     throw new Error('AI returned malformed JSON. Raw response logged to console.');
   },
 
-  // Ping test — checks API key validity without wasting tokens
-  async ping() {
-    const key = Storage.getApiKey();
-    if (!key) return { ok: false, error: 'No API key.' };
-    try {
-      const res = await fetch(this.API_URL, {
-        method: 'POST',
-        headers: this._headers(),
-        body: JSON.stringify({
-          model: this.MODEL,
-          max_tokens: 5,
-          messages: [{ role: 'user', content: 'Hi' }],
-        }),
-      });
-      if (res.status === 401) return { ok: false, error: 'Invalid API key.' };
-      if (res.status === 403) return { ok: false, error: 'API key lacks permissions.' };
-      if (res.status === 405) return { ok: false, error: 'Proxy returned 405 — wrong URL or method blocked. Visit your proxy URL in a browser to check it is alive.' };
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({}));
-        return { ok: false, error: b?.error?.message || `Error ${res.status}` };
-      }
-      const data = await res.json();
-      this.trackUsage(data.usage);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: 'Network error — cannot reach Anthropic. Check console.' };
-    }
-  },
-
-  // Streaming for mock interview
+  // ── Streaming for mock interview ──────────────────────
   async stream(systemPrompt, messages, onChunk) {
-    const key = Storage.getApiKey();
-    if (!key) throw new Error('No API key set.');
+    if (!Auth.isAuthed()) throw new Error('Not authenticated. Please log in.');
 
     let res;
     try {
-      res = await fetch(this.API_URL, {
+      res = await fetch(this.WORKER_URL, {
         method: 'POST',
         headers: this._headers(),
         body: JSON.stringify({
-          model: this.MODEL,
+          model:      this.MODEL,
           max_tokens: 1024,
-          stream: true,
-          system: systemPrompt,
+          stream:     true,
+          system:     systemPrompt,
           messages,
+          _context:   'mock',
         }),
       });
     } catch (err) {
-      throw new Error('Cannot reach Anthropic API. Check your connection.');
+      throw new Error('Cannot reach the API. Check your connection.');
     }
 
+    if (res.status === 401) throw new Error('Session expired. Please log in again.');
+    if (res.status === 403) throw new Error('Access denied. Contact the admin.');
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body?.error?.message || `API error ${res.status}`);
     }
 
-    const reader = res.body.getReader();
+    const reader  = res.body.getReader();
     const decoder = new TextDecoder();
-    let fullText = '';
-    let inputTokens = 0, outputTokens = 0;
+    let fullText = '', inputTokens = 0, outputTokens = 0;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+      const lines = decoder.decode(value).split('\n').filter(l => l.startsWith('data: '));
       for (const line of lines) {
         try {
           const json = JSON.parse(line.slice(6));
@@ -259,17 +191,19 @@ const AI = {
             fullText += json.delta.text;
             onChunk(json.delta.text, fullText);
           }
-          if (json.type === 'message_delta' && json.usage) {
-            outputTokens = json.usage.output_tokens || 0;
-          }
-          if (json.type === 'message_start' && json.message?.usage) {
-            inputTokens = json.message.usage.input_tokens || 0;
-          }
+          if (json.type === 'message_delta'  && json.usage)         outputTokens = json.usage.output_tokens || 0;
+          if (json.type === 'message_start'  && json.message?.usage) inputTokens = json.message.usage.input_tokens || 0;
         } catch { /* skip malformed SSE lines */ }
       }
     }
 
     this.trackUsage({ input_tokens: inputTokens, output_tokens: outputTokens });
+
+    // Log streaming usage to Supabase (worker only logs non-streaming)
+    if (inputTokens + outputTokens > 0) {
+      Storage.logUsage(inputTokens, outputTokens, 'mock');
+    }
+
     return fullText;
   },
 };

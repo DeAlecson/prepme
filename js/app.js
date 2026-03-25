@@ -1,16 +1,13 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.1.4';
-
-// Keys that belong to the USER and must never be wiped on version bump
-const PRESERVE_KEYS = ['prepme_profiles'];
+const APP_VERSION = '2.0.0';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
   if (stored !== APP_VERSION) {
-    // Clear only cache/config keys — never touch user data
+    // Clear only config/cache keys — never user data
     Object.keys(localStorage)
-      .filter(k => k.startsWith('prepme_') && !PRESERVE_KEYS.includes(k))
+      .filter(k => k.startsWith('prepme_') && k !== 'prepme_advanced')
       .forEach(k => localStorage.removeItem(k));
     localStorage.setItem('prepme_version', APP_VERSION);
   }
@@ -20,57 +17,7 @@ function initVersion() {
 
 let currentPortal = null;
 
-// ── API Key Gate ──
-function initGate() {
-  const key = Storage.getApiKey();
-  if (key) { showApp(); return; }
-
-  // Pre-fill proxy if saved
-  const proxyInput = $('gate-proxy-input');
-  if (proxyInput) proxyInput.value = Storage.getProxyUrl();
-
-  // How-to toggle
-  $('proxy-help-toggle')?.addEventListener('click', e => {
-    e.preventDefault();
-    $('proxy-help-steps')?.classList.toggle('hidden');
-  });
-
-  const input = $('gate-key-input');
-  const btn   = $('gate-submit');
-
-  btn.addEventListener('click', saveGateSettings);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveGateSettings(); });
-}
-
-function normalizeProxy(raw) {
-  if (!raw) return '';
-  return /^https?:\/\//i.test(raw) ? raw.replace(/\/$/, '') : 'https://' + raw.replace(/\/$/, '');
-}
-
-function saveGateSettings() {
-  const key   = $('gate-key-input')?.value.trim() || '';
-  const proxy = normalizeProxy($('gate-proxy-input')?.value.trim() || '');
-
-  if (!key.startsWith('sk-ant-')) {
-    toast('API key should start with sk-ant-', 'error');
-    return;
-  }
-
-  Storage.setApiKey(key);
-  if (proxy) Storage.setProxyUrl(proxy);
-  else Storage.clearProxyUrl();
-
-  $('key-gate').style.display = 'none';
-  showApp();
-}
-
-function showApp() {
-  $('key-gate').style.display = 'none';
-  $('app').classList.remove('hidden');
-  initApp();
-}
-
-// ── Tab Navigation ──
+// ── Tab Navigation ────────────────────────────────────────
 function initTabs() {
   $$('.ntab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -87,7 +34,6 @@ function switchTab(tabId) {
     p.classList.toggle('on', isTarget);
     if (tabId === 'mock') p.classList.toggle('mock-page', isTarget);
   });
-  // Hide footer on mock and processing (full-height views)
   const footer = $('app-footer');
   if (footer) footer.classList.toggle('hidden', tabId === 'mock' || tabId === 'processing');
 }
@@ -96,29 +42,12 @@ function enablePortalTabs() {
   $$('.ntab[data-portal]').forEach(t => t.classList.add('enabled'));
 }
 
-// ── Intake & Processing ──
+// ── Intake & Processing ───────────────────────────────────
 function initIntake() {
   initDropzone('resume-drop', 'resume-file-name');
-  initDropzone('cover-drop', 'cover-file-name');
-
+  initDropzone('cover-drop',  'cover-file-name');
   $('process-btn').addEventListener('click', runProcess);
 
-  // Test API key button
-  $('test-api-btn').addEventListener('click', async () => {
-    const btn = $('test-api-btn');
-    btn.disabled = true;
-    btn.textContent = 'Testing...';
-    const result = await AI.ping();
-    if (result.ok) {
-      toast('API key works!', 'success');
-    } else {
-      toast(`API key error: ${result.error}`, 'error');
-    }
-    btn.disabled = false;
-    btn.textContent = 'Test API Key';
-  });
-
-  // Live cost estimate — update whenever inputs change
   const estimateInputs = ['jd-url', 'jd-text', 'linkedin-url', 'glassdoor-url'];
   estimateInputs.forEach(id => {
     const el = $(id);
@@ -128,21 +57,18 @@ function initIntake() {
 }
 
 function updateCostEstimate() {
-  const jdText   = ($('jd-text')?.value || '') + ($('jd-url')?.value || '');
-  const linkedin = $('linkedin-url')?.value || '';
+  const jdText    = ($('jd-text')?.value   || '') + ($('jd-url')?.value || '');
+  const linkedin  = $('linkedin-url')?.value  || '';
   const glassdoor = $('glassdoor-url')?.value || '';
   const resumeDrop = $('resume-drop');
   const coverDrop  = $('cover-drop');
 
-  // Rough char count from typed inputs + file size estimate
   let chars = jdText.length + linkedin.length + glassdoor.length;
-  if (resumeDrop?._file)  chars += resumeDrop._file.size * 0.6; // text ratio
-  if (coverDrop?._file)   chars += coverDrop._file.size  * 0.6;
+  if (resumeDrop?._file) chars += resumeDrop._file.size * 0.6;
+  if (coverDrop?._file)  chars += coverDrop._file.size  * 0.6;
 
-  // Add system prompt + output overhead
-  const inputTokens  = Math.ceil(chars / 4) + 800;  // +800 for system prompt
-  const outputTokens = 8000; // typical generation output
-
+  const inputTokens  = Math.ceil(chars / 4) + 800;
+  const outputTokens = 8000;
   const cost = (inputTokens * AI.PRICE_INPUT) + (outputTokens * AI.PRICE_OUTPUT);
 
   const estTokensEl = $('est-tokens');
@@ -152,19 +78,18 @@ function updateCostEstimate() {
 }
 
 function initDropzone(dropId, nameId) {
-  const drop = $(dropId);
+  const drop   = $(dropId);
   const nameEl = $(nameId);
-  const input = drop.querySelector('.dropzone-input');
+  const input  = drop.querySelector('.dropzone-input');
 
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('dragover',  e => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', ()  => drop.classList.remove('dragover'));
   drop.addEventListener('drop', e => {
     e.preventDefault();
     drop.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
     if (file) setFile(drop, nameEl, file);
   });
-
   input.addEventListener('change', () => {
     if (input.files[0]) setFile(drop, nameEl, input.files[0]);
   });
@@ -181,20 +106,19 @@ function setFile(drop, nameEl, file) {
 }
 
 async function runProcess() {
-  const jdUrl = $('jd-url').value.trim();
-  const jdText = $('jd-text').value.trim();
-  const resumeDrop = $('resume-drop');
-  const coverDrop = $('cover-drop');
+  const jdUrl       = $('jd-url').value.trim();
+  const jdText      = $('jd-text').value.trim();
+  const resumeDrop  = $('resume-drop');
+  const coverDrop   = $('cover-drop');
   const linkedinUrl = $('linkedin-url').value.trim();
   const glassdoorUrl = $('glassdoor-url').value.trim();
 
-  // Validation
   if (!jdUrl && !jdText) { toast('Provide a job URL or paste the job description.', 'error'); return; }
-  if (!resumeDrop._file) { toast('Please upload your resume.', 'error'); return; }
+  if (!resumeDrop._file)  { toast('Please upload your resume.', 'error'); return; }
 
-  // Reset token counter and switch to processing screen
   AI.resetSession();
   switchTab('processing');
+
   const steps = ['proc-parse', 'proc-scrape', 'proc-analyze', 'proc-generate', 'proc-qa', 'proc-mock'];
   const stepTimers = {};
   let timerInterval = null;
@@ -211,7 +135,6 @@ async function runProcess() {
       } else if (si === i) {
         el.className = 'proc-step active';
         stepTimers[i] = now;
-        // Start live tick for this step
         clearInterval(timerInterval);
         timerInterval = setInterval(() => {
           const timerEl = el.querySelector('.proc-timer');
@@ -225,13 +148,9 @@ async function runProcess() {
     });
   }
 
-  function stopTimers() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
+  function stopTimers() { clearInterval(timerInterval); timerInterval = null; }
 
   try {
-    // Step 1 — Parse files
     setStep(0);
     let resumeText, coverText;
     try {
@@ -239,70 +158,47 @@ async function runProcess() {
         Parsers.parseFile(resumeDrop._file),
         coverDrop._file ? Parsers.parseFile(coverDrop._file) : Promise.resolve(null),
       ]);
-    } catch (err) {
-      throw new Error(`File parsing failed: ${err.message}`);
-    }
+    } catch (err) { throw new Error(`File parsing failed: ${err.message}`); }
 
-    // Step 2 — Scrape URLs (non-fatal — failures fall back to null)
     setStep(1);
     let scraped = { jdText: null, linkedinText: null, glassdoorText: null };
-    try {
-      scraped = await Scraper.scrapeAll({ jdUrl, linkedinUrl, glassdoorUrl });
-    } catch {
-      // Scraping failed entirely — continue with pasted JD only
-    }
+    try { scraped = await Scraper.scrapeAll({ jdUrl, linkedinUrl, glassdoorUrl }); } catch { }
 
-    // Steps 3-6 — Generate portal (5 AI calls, 2 run in parallel)
     let portal;
     try {
       portal = await Prompts.generatePortal(
-        {
-          jdText: scraped.jdText,
-          pastedJD: jdText,
-          resumeText,
-          coverText,
-          linkedinText: scraped.linkedinText,
-          glassdoorText: scraped.glassdoorText,
-        },
+        { jdText: scraped.jdText, pastedJD: jdText, resumeText, coverText,
+          linkedinText: scraped.linkedinText, glassdoorText: scraped.glassdoorText },
         (phase) => {
-          if (phase === 'analyze') setStep(2); // Analyzing fit & gaps
-          if (phase === 'core')    setStep(3); // Generating your prep deck
-          if (phase === 'qa')      setStep(4); // Building Q&A and quiz
-          if (phase === 'quiz')    setStep(5); // Configuring mock interview
+          if (phase === 'analyze') setStep(2);
+          if (phase === 'core')    setStep(3);
+          if (phase === 'qa')      setStep(4);
+          if (phase === 'quiz')    setStep(5);
         }
       );
-    } catch (err) {
-      throw new Error(`AI generation failed: ${err.message}`);
-    }
+    } catch (err) { throw new Error(`AI generation failed: ${err.message}`); }
 
     stopTimers();
 
-    // Save profile
-    const profile = {
-      id: Storage.generateId(),
-      ...portal,
-      savedAt: Date.now(),
-    };
-    Storage.saveProfile(profile);
+    const profile = { id: Storage.generateId(), ...portal, savedAt: Date.now() };
+    await Storage.saveProfile(profile);
     currentPortal = profile;
 
-    // Render all portal sections
     Renderer.renderAll(portal);
     Quiz.init(portal.quiz?.questions || []);
     Mock.init(portal);
-
     enablePortalTabs();
     switchTab('overview');
 
   } catch (err) {
     stopTimers();
     console.error(err);
-    toast(err.message || 'Something went wrong. Check your API key and try again.', 'error');
+    toast(err.message || 'Something went wrong.', 'error');
     switchTab('intake');
   }
 }
 
-// ── Profiles Drawer ──
+// ── Saved Preps Drawer ────────────────────────────────────
 function initProfiles() {
   $('profiles-btn').addEventListener('click', openProfiles);
   $('profiles-close').addEventListener('click', closeProfiles);
@@ -320,34 +216,36 @@ function closeProfiles() {
   $('profiles-overlay').classList.add('hidden');
 }
 
-function renderProfilesList() {
-  const profiles = Storage.getProfiles();
+async function renderProfilesList() {
   const list = $('profiles-list');
+  list.innerHTML = `<div class="empty-state" style="opacity:0.5">Loading…</div>`;
+  const profiles = await Storage.getProfiles();
 
   if (!profiles.length) {
     list.innerHTML = `<div class="empty-state">No saved preps yet.<br>Complete your first prep to save it here.</div>`;
     return;
   }
 
-  list.innerHTML = profiles.map(p => `
+  list.innerHTML = profiles.map(p => {
+    const d = p.data || p;
+    return `
     <div class="profile-card" data-id="${escapeHTML(p.id)}">
       <div onclick="loadProfile('${escapeHTML(p.id)}'); closeProfiles();" style="flex:1;cursor:pointer">
-        <div class="profile-role">${escapeHTML(p.meta?.role || 'Unknown Role')}</div>
-        <div class="profile-company">${escapeHTML(p.meta?.company || 'Unknown Company')}</div>
-        <div class="profile-date">${formatDate(p.savedAt)}</div>
+        <div class="profile-role">${escapeHTML(d.meta?.role || p.role || 'Unknown Role')}</div>
+        <div class="profile-company">${escapeHTML(d.meta?.company || p.company || 'Unknown Company')}</div>
+        <div class="profile-date">${formatDate(p.updated_at || p.savedAt)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <div class="profile-score">${p.overview?.readinessScore || '--'}</div>
+        <div class="profile-score">${p.readiness_score || d.overview?.readinessScore || '--'}</div>
         <button class="profile-delete" onclick="deleteProfile('${escapeHTML(p.id)}')" title="Delete">✕</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
-function loadProfile(id) {
-  const profile = Storage.getProfile(id);
+async function loadProfile(id) {
+  const profile = await Storage.getProfile(id);
   if (!profile) { toast('Profile not found.', 'error'); return; }
-
   currentPortal = profile;
   Renderer.renderAll(profile);
   Quiz.init(profile.quiz?.questions || []);
@@ -357,13 +255,13 @@ function loadProfile(id) {
   toast(`Loaded: ${profile.meta?.role} @ ${profile.meta?.company}`, 'success');
 }
 
-function deleteProfile(id) {
-  Storage.deleteProfile(id);
+async function deleteProfile(id) {
+  await Storage.deleteProfile(id);
   renderProfilesList();
   toast('Prep deleted.', 'success');
 }
 
-// ── Score Modal ──
+// ── Score Modal ───────────────────────────────────────────
 function initScoreModal() {
   $('score-close').addEventListener('click', () => {
     $('score-modal').classList.add('hidden');
@@ -375,58 +273,59 @@ function initScoreModal() {
   });
 }
 
-// ── API Key Modal ──
-function initKeyReset() {
-  $('clear-key-btn').addEventListener('click', openKeyModal);
-  $('key-modal-close').addEventListener('click', closeKeyModal);
-  $('key-modal-overlay').addEventListener('click', closeKeyModal);
+// ── Settings Modal ────────────────────────────────────────
+function initSettings() {
+  $('nav-settings-btn')?.addEventListener('click', openSettings);
+  $('settings-modal-close')?.addEventListener('click', closeSettings);
+  $('settings-modal-overlay')?.addEventListener('click', closeSettings);
 
-  $('modal-key-save').addEventListener('click', () => {
-    const key   = $('modal-key-input').value.trim();
-    const proxy = normalizeProxy($('modal-proxy-input').value.trim());
-    if (key && !key.startsWith('sk-ant-')) {
-      toast('API key should start with sk-ant-', 'error');
-      return;
-    }
-    if (key) Storage.setApiKey(key);
-    if (proxy) Storage.setProxyUrl(proxy);
-    else Storage.clearProxyUrl();
-    // Refresh proxy input to show normalized URL
-    $('modal-proxy-input').value = Storage.getProxyUrl();
-    closeKeyModal();
-    toast('Settings saved.', 'success');
-  });
+  // Advanced Mode toggle
+  const toggle = $('advanced-mode-toggle');
+  if (toggle) {
+    toggle.checked = Storage.getAdvancedMode();
+    toggle.addEventListener('change', () => {
+      Storage.setAdvancedMode(toggle.checked);
+      const bar = $('token-bar');
+      if (bar) bar.classList.toggle('hidden', !toggle.checked);
+      if (!toggle.checked && bar) bar.classList.add('hidden');
+      else AI._updateUsageBar();
+    });
+  }
 
-  $('modal-key-clear').addEventListener('click', () => {
-    Storage.clearApiKey();
-    Storage.clearProxyUrl();
-    location.reload();
+  // Sign out button in settings
+  $('settings-signout-btn')?.addEventListener('click', () => {
+    closeSettings();
+    Auth.signOut();
   });
 }
 
-function openKeyModal() {
-  // Pre-fill with stored key — shows as dots (password field), confirming it's saved
-  $('modal-key-input').value   = Storage.getApiKey();
-  $('modal-proxy-input').value = Storage.getProxyUrl();
-  $('key-modal').classList.remove('hidden');
-  $('key-modal-overlay').classList.remove('hidden');
+function openSettings() {
+  const toggle = $('advanced-mode-toggle');
+  if (toggle) toggle.checked = Storage.getAdvancedMode();
+  $('settings-modal').classList.remove('hidden');
+  $('settings-modal-overlay').classList.remove('hidden');
 }
 
-function closeKeyModal() {
-  $('key-modal').classList.add('hidden');
-  $('key-modal-overlay').classList.add('hidden');
+function closeSettings() {
+  $('settings-modal').classList.add('hidden');
+  $('settings-modal-overlay').classList.add('hidden');
 }
 
-// ── Boot ──
+// ── Boot (called by Auth after login) ────────────────────
 function initApp() {
   initTabs();
   initIntake();
   initProfiles();
   initScoreModal();
-  initKeyReset();
+  initSettings();
+  initAdmin();
+  // Show/hide Advanced Mode token bar based on setting
+  const bar = $('token-bar');
+  if (bar && !Storage.getAdvancedMode()) bar.classList.add('hidden');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initVersion();
-  initGate();
+  initAuthGate(); // wires up auth gate buttons
+  Auth.init();    // checks session and either shows gate or launches app
 });

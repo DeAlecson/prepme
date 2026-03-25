@@ -12,62 +12,47 @@
 </head>
 <body>
 
-  <!-- API KEY GATE -->
-  <div id="key-gate" class="gate-overlay">
+  <!-- ── AUTH GATE ─────────────────────────────────────── -->
+  <div id="auth-gate" class="gate-overlay hidden">
     <div class="gate-card">
       <div class="gate-logo">PrepMe</div>
-      <p class="gate-sub">Enter your Anthropic API key. Stored in session only — never logged or shared.</p>
 
-      <div class="gate-field-label">Anthropic API Key <span class="badge-required">Required</span></div>
-      <input id="gate-key-input" type="password" class="gate-input" placeholder="sk-ant-..." autocomplete="off" />
-
-      <div class="gate-field-label" style="margin-top:4px">
-        Proxy URL <span class="badge-optional">Required for GitHub Pages</span>
-      </div>
-      <input id="gate-proxy-input" type="url" class="gate-input" placeholder="https://your-worker.workers.dev" autocomplete="off" />
-      <p class="gate-proxy-help">
-        Direct browser calls to Anthropic are blocked by CORS.
-        Deploy the free <a href="https://github.com/DeAlecson/prepme/blob/master/worker/proxy.js" target="_blank" rel="noopener">Cloudflare Worker proxy</a>
-        and paste its URL above. <a href="#" id="proxy-help-toggle">How?</a>
-      </p>
-      <div id="proxy-help-steps" class="gate-proxy-steps hidden">
-        <ol>
-          <li>Go to <a href="https://workers.cloudflare.com" target="_blank" rel="noopener">workers.cloudflare.com</a> → free account</li>
-          <li>Create Worker → paste the contents of <code>worker/proxy.js</code></li>
-          <li>Deploy → copy the <code>*.workers.dev</code> URL</li>
-          <li>Paste it in the Proxy URL field above</li>
-        </ol>
+      <!-- Step 1: Enter email -->
+      <div id="auth-step-email">
+        <p class="gate-sub">Sign in with your email to access your prep workspace.</p>
+        <div class="gate-field-label">Email Address</div>
+        <input id="auth-email-input" type="email" class="gate-input" placeholder="you@example.com" autocomplete="email" />
+        <button id="auth-send-btn" class="btn btn-primary" style="width:100%;margin-top:12px">Send Magic Link</button>
+        <p class="gate-hint">A sign-in link will be sent to your inbox. No password needed.</p>
       </div>
 
-      <button id="gate-submit" class="btn btn-primary">Continue</button>
-      <p class="gate-hint">Get an API key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
-    </div>
-  </div>
+      <!-- Step 2: Link sent -->
+      <div id="auth-step-sent" class="hidden">
+        <div class="gate-sent-icon">✉️</div>
+        <p class="gate-sub">Magic link sent to <strong id="auth-sent-email"></strong>.</p>
+        <p class="gate-hint">Check your inbox and click the link. You can close this tab after clicking.</p>
+        <button id="auth-back-btn" class="btn btn-ghost" style="width:100%;margin-top:8px">← Back</button>
+      </div>
 
-  <!-- API KEY UPDATE MODAL -->
-  <div id="key-modal-overlay" class="overlay hidden"></div>
-  <div id="key-modal" class="modal hidden">
-    <div class="modal-header">
-      <span class="modal-title">API Settings</span>
-      <button id="key-modal-close" class="icon-btn">✕</button>
-    </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
-      <div>
-        <div class="gate-field-label">Anthropic API Key</div>
-        <input id="modal-key-input" type="password" class="gate-input" placeholder="sk-ant-..." autocomplete="off" />
+      <!-- Step 3: Invite code (new user) -->
+      <div id="auth-step-invite" class="hidden">
+        <p class="gate-sub">You need an invite code to access PrepMe.</p>
+        <div class="gate-field-label">Invite Code</div>
+        <input id="auth-code-input" type="text" class="gate-input" placeholder="XXXX-XXXX" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px" />
+        <button id="auth-code-btn" class="btn btn-primary" style="width:100%;margin-top:12px">Unlock Access</button>
+        <p class="gate-hint">Don't have a code? Contact <a href="mailto:alecson95@gmail.com">alecson95@gmail.com</a></p>
       </div>
-      <div>
-        <div class="gate-field-label">Proxy URL</div>
-        <input id="modal-proxy-input" type="text" class="gate-input" placeholder="https://your-worker.workers.dev" autocomplete="off" />
-      </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button id="modal-key-clear" class="btn btn-ghost">Clear &amp; Sign Out</button>
-        <button id="modal-key-save" class="btn btn-primary">Save</button>
+
+      <!-- Step 4: Access denied -->
+      <div id="auth-step-denied" class="hidden">
+        <div class="gate-sent-icon">🔒</div>
+        <p class="gate-sub">Your account is inactive. Contact the admin to restore access.</p>
+        <button id="auth-denied-signout" class="btn btn-ghost" style="width:100%;margin-top:8px">Sign Out</button>
       </div>
     </div>
   </div>
 
-  <!-- APP SHELL -->
+  <!-- ── APP SHELL ──────────────────────────────────────── -->
   <div id="app" class="app hidden">
 
     <!-- TOP NAV -->
@@ -80,22 +65,28 @@
             <span class="nav-action-icon">☰</span>
             <span class="nav-action-label">Saved Preps</span>
           </button>
-          <button id="clear-key-btn" class="btn btn-ghost btn-sm">
-            <span class="nav-action-icon">🔑</span>
-            <span class="nav-action-label">API Key</span>
+          <!-- Admin button — hidden for non-admins -->
+          <button id="nav-admin-btn" class="btn btn-ghost btn-sm hidden">
+            <span class="nav-action-icon">⚙</span>
+            <span class="nav-action-label">Admin</span>
+          </button>
+          <!-- User + settings -->
+          <button id="nav-settings-btn" class="btn btn-ghost btn-sm nav-user-btn">
+            <span class="nav-user-avatar" id="nav-user-avatar">U</span>
+            <span class="nav-action-label" id="nav-user-label">User</span>
           </button>
         </div>
       </div>
       <nav class="nav-tab-strip" id="nav-tabs">
         <button class="ntab active" data-tab="intake">New Prep</button>
-        <button class="ntab" data-tab="overview" data-portal>Overview</button>
-        <button class="ntab" data-tab="jobscope" data-portal>Job Scope</button>
-        <button class="ntab" data-tab="resume" data-portal>Resume Scan</button>
+        <button class="ntab" data-tab="overview"    data-portal>Overview</button>
+        <button class="ntab" data-tab="jobscope"    data-portal>Job Scope</button>
+        <button class="ntab" data-tab="resume"      data-portal>Resume Scan</button>
         <button class="ntab" data-tab="interviewer" data-portal>Interviewer</button>
-        <button class="ntab" data-tab="edge" data-portal>Your Edge</button>
-        <button class="ntab" data-tab="qa" data-portal>Q&amp;A Prep</button>
-        <button class="ntab" data-tab="quiz" data-portal>Quiz</button>
-        <button class="ntab" data-tab="mock" data-portal>Mock Interview</button>
+        <button class="ntab" data-tab="edge"        data-portal>Your Edge</button>
+        <button class="ntab" data-tab="qa"          data-portal>Q&amp;A Prep</button>
+        <button class="ntab" data-tab="quiz"        data-portal>Quiz</button>
+        <button class="ntab" data-tab="mock"        data-portal>Mock Interview</button>
       </nav>
     </header>
 
@@ -109,8 +100,6 @@
           <p class="pg-sub">Provide your job materials and we'll build a personalized interview prep workspace.</p>
 
           <div class="intake-grid">
-
-            <!-- JD Section -->
             <div class="intake-section">
               <div class="sec-label">Job Description <span class="badge-required">Required</span></div>
               <div class="field-group">
@@ -120,10 +109,9 @@
               </div>
             </div>
 
-            <!-- Resume Section -->
             <div class="intake-section">
               <div class="sec-label">Resume <span class="badge-required">Required</span></div>
-              <div id="resume-drop" class="dropzone" data-target="resume">
+              <div id="resume-drop" class="dropzone">
                 <div class="dropzone-icon">↑</div>
                 <div class="dropzone-text">Drop your resume here or <span class="dropzone-link">browse</span></div>
                 <div class="dropzone-hint">PDF, DOCX, or TXT</div>
@@ -132,17 +120,15 @@
               <div id="resume-file-name" class="file-name hidden"></div>
             </div>
 
-            <!-- Optional: LinkedIn -->
             <div class="intake-section">
               <div class="sec-label">Employer / Interviewer LinkedIn <span class="badge-optional">Optional</span></div>
               <input id="linkedin-url" type="url" class="field-input" placeholder="https://linkedin.com/in/..." />
               <p class="field-hint">Used to personalize the interviewer profile and question style.</p>
             </div>
 
-            <!-- Optional: Cover Letter -->
             <div class="intake-section">
               <div class="sec-label">Cover Letter <span class="badge-optional">Optional</span></div>
-              <div id="cover-drop" class="dropzone" data-target="cover">
+              <div id="cover-drop" class="dropzone">
                 <div class="dropzone-icon">↑</div>
                 <div class="dropzone-text">Drop your cover letter or <span class="dropzone-link">browse</span></div>
                 <div class="dropzone-hint">PDF, DOCX, or TXT</div>
@@ -151,40 +137,33 @@
               <div id="cover-file-name" class="file-name hidden"></div>
             </div>
 
-            <!-- Optional: Glassdoor -->
             <div class="intake-section">
               <div class="sec-label">Glassdoor Company Page <span class="badge-optional">Optional</span></div>
               <input id="glassdoor-url" type="url" class="field-input" placeholder="https://www.glassdoor.com/Overview/..." />
-              <p class="field-hint">Don't have it? <a class="field-link" href="https://www.google.com/search?q=glassdoor+company+reviews" target="_blank" rel="noopener">Search on Google: [Company Name] Glassdoor reviews</a></p>
+              <p class="field-hint">Don't have it? <a class="field-link" href="https://www.google.com/search?q=glassdoor+company+reviews" target="_blank" rel="noopener">Search Glassdoor</a></p>
             </div>
-
           </div>
 
-          <!-- Live cost estimate -->
           <div class="cost-estimate-card" id="cost-estimate">
             <div class="cost-estimate-row">
-              <span class="cost-label">Estimated tokens</span>
-              <span class="cost-val" id="est-tokens">—</span>
+              <span class="cost-label">Estimated tokens</span><span class="cost-val" id="est-tokens">—</span>
             </div>
             <div class="cost-estimate-row">
-              <span class="cost-label">Estimated cost</span>
-              <span class="cost-val" id="est-cost">—</span>
+              <span class="cost-label">Estimated cost</span><span class="cost-val" id="est-cost">—</span>
             </div>
             <div class="cost-estimate-row">
-              <span class="cost-label">Model</span>
-              <span class="cost-val">Claude Haiku 4.5</span>
+              <span class="cost-label">Model</span><span class="cost-val">Claude Haiku 4.5</span>
             </div>
             <p class="cost-note">Estimate based on input length. Actual cost shown in nav after generation.</p>
           </div>
 
           <div class="intake-footer">
-            <button id="test-api-btn" class="btn btn-ghost">Test API Key</button>
             <button id="process-btn" class="btn btn-primary btn-lg">Generate My Prep Workspace</button>
           </div>
         </div>
       </section>
 
-      <!-- PROCESSING STATE -->
+      <!-- PROCESSING -->
       <section class="page" id="page-processing">
         <div class="page-inner processing-center">
           <div class="processing-icon">⚡</div>
@@ -201,55 +180,29 @@
         </div>
       </section>
 
-      <!-- OVERVIEW PAGE -->
-      <section class="page" id="page-overview">
-        <div class="page-inner" id="content-overview"></div>
-      </section>
+      <!-- PORTAL PAGES -->
+      <section class="page" id="page-overview">    <div class="page-inner" id="content-overview"></div></section>
+      <section class="page" id="page-jobscope">    <div class="page-inner" id="content-jobscope"></div></section>
+      <section class="page" id="page-resume">      <div class="page-inner" id="content-resume"></div></section>
+      <section class="page" id="page-interviewer"> <div class="page-inner" id="content-interviewer"></div></section>
+      <section class="page" id="page-edge">        <div class="page-inner" id="content-edge"></div></section>
+      <section class="page" id="page-qa">          <div class="page-inner" id="content-qa"></div></section>
+      <section class="page" id="page-quiz">        <div class="page-inner" id="content-quiz"></div></section>
 
-      <!-- JOB SCOPE PAGE -->
-      <section class="page" id="page-jobscope">
-        <div class="page-inner" id="content-jobscope"></div>
-      </section>
-
-      <!-- RESUME SCAN PAGE -->
-      <section class="page" id="page-resume">
-        <div class="page-inner" id="content-resume"></div>
-      </section>
-
-      <!-- INTERVIEWER PAGE -->
-      <section class="page" id="page-interviewer">
-        <div class="page-inner" id="content-interviewer"></div>
-      </section>
-
-      <!-- YOUR EDGE PAGE -->
-      <section class="page" id="page-edge">
-        <div class="page-inner" id="content-edge"></div>
-      </section>
-
-      <!-- Q&A PREP PAGE -->
-      <section class="page" id="page-qa">
-        <div class="page-inner" id="content-qa"></div>
-      </section>
-
-      <!-- QUIZ PAGE -->
-      <section class="page" id="page-quiz">
-        <div class="page-inner" id="content-quiz"></div>
-      </section>
-
-      <!-- MOCK INTERVIEW PAGE -->
+      <!-- MOCK INTERVIEW -->
       <section class="page mock-page" id="page-mock">
-        <div class="mock-header" id="mock-header"></div>
+        <div class="mock-header"   id="mock-header"></div>
         <div class="mock-messages" id="mock-messages"></div>
         <div class="mock-input-bar" id="mock-input-bar">
           <textarea id="mock-input" class="mock-textarea" placeholder="Type your answer..." rows="1"></textarea>
           <button id="mock-send" class="btn btn-primary">Send</button>
-          <button id="mock-end" class="btn btn-ghost">End &amp; Score</button>
+          <button id="mock-end"  class="btn btn-ghost">End &amp; Score</button>
         </div>
       </section>
 
     </main>
 
-    <!-- PROFILES DRAWER -->
+    <!-- SAVED PREPS DRAWER -->
     <div id="profiles-overlay" class="overlay hidden"></div>
     <aside id="profiles-drawer" class="drawer hidden">
       <div class="drawer-header">
@@ -263,7 +216,7 @@
     <footer class="app-footer" id="app-footer">
       <span>PrepMe</span>
       <span class="footer-dot">·</span>
-      <span id="footer-version">v1.0.0</span>
+      <span id="footer-version">v2.0.0</span>
       <span class="footer-dot">·</span>
       <span>Powered by Claude</span>
     </footer>
@@ -278,10 +231,72 @@
       <div id="score-body" class="modal-body"></div>
     </div>
 
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal-overlay" class="overlay hidden"></div>
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-header">
+        <span class="modal-title">Settings</span>
+        <button id="settings-modal-close" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:20px">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Advanced Mode</div>
+            <div class="settings-hint">Show token usage and cost counters in the nav bar and chat.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="advanced-mode-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Account</div>
+            <div class="settings-hint" id="settings-email-display"></div>
+          </div>
+          <button id="settings-signout-btn" class="btn btn-ghost btn-sm">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #app -->
+
+  <!-- ── ADMIN PANEL MODAL ──────────────────────────────── -->
+  <div id="admin-overlay" class="overlay hidden"></div>
+  <div id="admin-modal" class="modal admin-modal hidden">
+    <div class="modal-header">
+      <span class="modal-title">Admin Console</span>
+      <button id="admin-close-btn" class="icon-btn">✕</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" data-panel="admin-panel-users">Users</button>
+      <button class="admin-tab-btn" data-panel="admin-panel-codes">Invite Codes</button>
+    </div>
+    <div class="modal-body admin-body">
+
+      <!-- Users panel -->
+      <div id="admin-panel-users" class="admin-tab-panel">
+        <div class="admin-search-row">
+          <input id="admin-search-input" type="text" class="gate-input" placeholder="Search by email or UID…" />
+        </div>
+        <div id="admin-users-list" class="admin-list"></div>
+      </div>
+
+      <!-- Invite codes panel -->
+      <div id="admin-panel-codes" class="admin-tab-panel hidden">
+        <div class="admin-search-row">
+          <button id="admin-gen-code-btn" class="btn btn-primary">+ Generate Invite Code</button>
+        </div>
+        <div id="admin-codes-list" class="admin-list"></div>
+      </div>
+
+    </div>
   </div>
 
   <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/parsers.js"></script>
   <script src="js/scraper.js"></script>
@@ -290,6 +305,7 @@
   <script src="js/renderer.js"></script>
   <script src="js/quiz.js"></script>
   <script src="js/mock.js"></script>
+  <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
