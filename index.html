@@ -30,6 +30,7 @@
       <div class="nav-top">
         <div class="nav-brand">PrepMe</div>
         <div class="nav-actions">
+          <div id="token-bar" class="token-bar hidden"></div>
           <button id="profiles-btn" class="btn btn-ghost btn-sm">
             <span class="nav-action-icon">☰</span>
             <span class="nav-action-label">Saved Preps</span>
@@ -114,7 +115,25 @@
 
           </div>
 
+          <!-- Live cost estimate -->
+          <div class="cost-estimate-card" id="cost-estimate">
+            <div class="cost-estimate-row">
+              <span class="cost-label">Estimated tokens</span>
+              <span class="cost-val" id="est-tokens">—</span>
+            </div>
+            <div class="cost-estimate-row">
+              <span class="cost-label">Estimated cost</span>
+              <span class="cost-val" id="est-cost">—</span>
+            </div>
+            <div class="cost-estimate-row">
+              <span class="cost-label">Model</span>
+              <span class="cost-val">Claude Haiku 4.5</span>
+            </div>
+            <p class="cost-note">Estimate based on input length. Actual cost shown in nav after generation.</p>
+          </div>
+
           <div class="intake-footer">
+            <button id="test-api-btn" class="btn btn-ghost">Test API Key</button>
             <button id="process-btn" class="btn btn-primary btn-lg">Generate My Prep Workspace</button>
           </div>
         </div>

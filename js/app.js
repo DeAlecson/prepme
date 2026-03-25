@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -83,6 +83,53 @@ function initIntake() {
   initDropzone('cover-drop', 'cover-file-name');
 
   $('process-btn').addEventListener('click', runProcess);
+
+  // Test API key button
+  $('test-api-btn').addEventListener('click', async () => {
+    const btn = $('test-api-btn');
+    btn.disabled = true;
+    btn.textContent = 'Testing...';
+    const result = await AI.ping();
+    if (result.ok) {
+      toast('API key works!', 'success');
+    } else {
+      toast(`API key error: ${result.error}`, 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Test API Key';
+  });
+
+  // Live cost estimate — update whenever inputs change
+  const estimateInputs = ['jd-url', 'jd-text', 'linkedin-url', 'glassdoor-url'];
+  estimateInputs.forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('input', updateCostEstimate);
+  });
+  updateCostEstimate();
+}
+
+function updateCostEstimate() {
+  const jdText   = ($('jd-text')?.value || '') + ($('jd-url')?.value || '');
+  const linkedin = $('linkedin-url')?.value || '';
+  const glassdoor = $('glassdoor-url')?.value || '';
+  const resumeDrop = $('resume-drop');
+  const coverDrop  = $('cover-drop');
+
+  // Rough char count from typed inputs + file size estimate
+  let chars = jdText.length + linkedin.length + glassdoor.length;
+  if (resumeDrop?._file)  chars += resumeDrop._file.size * 0.6; // text ratio
+  if (coverDrop?._file)   chars += coverDrop._file.size  * 0.6;
+
+  // Add system prompt + output overhead
+  const inputTokens  = Math.ceil(chars / 4) + 800;  // +800 for system prompt
+  const outputTokens = 8000; // typical generation output
+
+  const cost = (inputTokens * AI.PRICE_INPUT) + (outputTokens * AI.PRICE_OUTPUT);
+
+  const estTokensEl = $('est-tokens');
+  const estCostEl   = $('est-cost');
+  if (estTokensEl) estTokensEl.textContent = `~${(inputTokens + outputTokens).toLocaleString()} tokens`;
+  if (estCostEl)   estCostEl.textContent   = `~$${cost.toFixed(4)} USD`;
 }
 
 function initDropzone(dropId, nameId) {
@@ -111,6 +158,7 @@ function setFile(drop, nameEl, file) {
   drop.querySelector('.dropzone-text').textContent = file.name;
   nameEl.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
   nameEl.classList.remove('hidden');
+  updateCostEstimate();
 }
 
 async function runProcess() {
@@ -125,7 +173,8 @@ async function runProcess() {
   if (!jdUrl && !jdText) { toast('Provide a job URL or paste the job description.', 'error'); return; }
   if (!resumeDrop._file) { toast('Please upload your resume.', 'error'); return; }
 
-  // Switch to processing screen
+  // Reset token counter and switch to processing screen
+  AI.resetSession();
   switchTab('processing');
   const steps = ['proc-parse', 'proc-scrape', 'proc-analyze', 'proc-generate', 'proc-qa', 'proc-mock'];
   let stepIdx = 0;

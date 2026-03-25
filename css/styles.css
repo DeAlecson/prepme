@@ -446,6 +446,36 @@ input, textarea { font-family: inherit; }
 .interviewer-title { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 .interviewer-style { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 
+/* ── Token Bar ── */
+.token-bar {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 99px; padding: 4px 12px;
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
+  white-space: nowrap;
+}
+.tbar-item { display: flex; align-items: center; gap: 4px; }
+.tbar-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+.tbar-sep { color: var(--text-faint); }
+.tbar-cost { color: var(--accent-light); font-weight: 600; }
+
+/* ── Cost Estimate Card ── */
+.cost-estimate-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+  margin-top: 24px; display: flex; flex-direction: column; gap: 8px;
+}
+.cost-estimate-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px;
+}
+.cost-label { color: var(--text-muted); }
+.cost-val { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.cost-note { font-size: 11px; color: var(--text-faint); margin-top: 4px; line-height: 1.5; }
+
+/* ── Intake Footer ── */
+.intake-footer { margin-top: 16px; display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+
 /* ── Footer ── */
 .app-footer {
   display: flex; align-items: center; justify-content: center; gap: 8px;
