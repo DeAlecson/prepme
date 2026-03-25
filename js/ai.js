@@ -5,8 +5,11 @@ const AI = {
   DIRECT_URL: 'https://api.anthropic.com/v1/messages',
 
   get API_URL() {
-    const proxy = Storage.getProxyUrl();
-    return proxy ? proxy.replace(/\/$/, '') + '/v1/messages' : this.DIRECT_URL;
+    let proxy = Storage.getProxyUrl();
+    if (!proxy) return this.DIRECT_URL;
+    // Normalize — add https:// if bare domain was entered
+    if (!/^https?:\/\//i.test(proxy)) proxy = 'https://' + proxy;
+    return proxy.replace(/\/$/, '') + '/v1/messages';
   },
 
   // Pricing per token (Claude Haiku 4.5 approximate)

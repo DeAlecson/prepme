@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.7';
+const APP_VERSION = '1.0.8';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -39,9 +39,14 @@ function initGate() {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') saveGateSettings(); });
 }
 
+function normalizeProxy(raw) {
+  if (!raw) return '';
+  return /^https?:\/\//i.test(raw) ? raw.replace(/\/$/, '') : 'https://' + raw.replace(/\/$/, '');
+}
+
 function saveGateSettings() {
   const key   = $('gate-key-input')?.value.trim() || '';
-  const proxy = $('gate-proxy-input')?.value.trim() || '';
+  const proxy = normalizeProxy($('gate-proxy-input')?.value.trim() || '');
 
   if (!key.startsWith('sk-ant-')) {
     toast('API key should start with sk-ant-', 'error');
@@ -353,7 +358,7 @@ function initKeyReset() {
 
   $('modal-key-save').addEventListener('click', () => {
     const key   = $('modal-key-input').value.trim();
-    const proxy = $('modal-proxy-input').value.trim();
+    const proxy = normalizeProxy($('modal-proxy-input').value.trim());
     if (key && !key.startsWith('sk-ant-')) {
       toast('API key should start with sk-ant-', 'error');
       return;
@@ -361,6 +366,8 @@ function initKeyReset() {
     if (key) Storage.setApiKey(key);
     if (proxy) Storage.setProxyUrl(proxy);
     else Storage.clearProxyUrl();
+    // Refresh proxy input to show normalized URL
+    $('modal-proxy-input').value = Storage.getProxyUrl();
     closeKeyModal();
     toast('Settings saved.', 'success');
   });
@@ -373,13 +380,8 @@ function initKeyReset() {
 }
 
 function openKeyModal() {
-  const existingKey = Storage.getApiKey();
-  const keyInput = $('modal-key-input');
-  keyInput.value = '';
-  // Show masked hint so user knows a key is already saved
-  keyInput.placeholder = existingKey
-    ? `Key saved (${existingKey.slice(0, 10)}…${existingKey.slice(-4)}) — enter new key to replace`
-    : 'sk-ant-api03-...';
+  // Pre-fill with stored key — shows as dots (password field), confirming it's saved
+  $('modal-key-input').value   = Storage.getApiKey();
   $('modal-proxy-input').value = Storage.getProxyUrl();
   $('key-modal').classList.remove('hidden');
   $('key-modal-overlay').classList.remove('hidden');
