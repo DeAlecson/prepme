@@ -1,6 +1,6 @@
 /* ── App Boot ── */
 
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
@@ -20,29 +20,40 @@ let currentPortal = null;
 // ── API Key Gate ──
 function initGate() {
   const key = Storage.getApiKey();
-  if (key) {
-    showApp();
+  if (key) { showApp(); return; }
+
+  // Pre-fill proxy if saved
+  const proxyInput = $('gate-proxy-input');
+  if (proxyInput) proxyInput.value = Storage.getProxyUrl();
+
+  // How-to toggle
+  $('proxy-help-toggle')?.addEventListener('click', e => {
+    e.preventDefault();
+    $('proxy-help-steps')?.classList.toggle('hidden');
+  });
+
+  const input = $('gate-key-input');
+  const btn   = $('gate-submit');
+
+  btn.addEventListener('click', saveGateSettings);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') saveGateSettings(); });
+}
+
+function saveGateSettings() {
+  const key   = $('gate-key-input')?.value.trim() || '';
+  const proxy = $('gate-proxy-input')?.value.trim() || '';
+
+  if (!key.startsWith('sk-ant-')) {
+    toast('API key should start with sk-ant-', 'error');
     return;
   }
 
-  const gate = $('key-gate');
-  const input = $('gate-key-input');
-  const btn = $('gate-submit');
+  Storage.setApiKey(key);
+  if (proxy) Storage.setProxyUrl(proxy);
+  else Storage.clearProxyUrl();
 
-  btn.addEventListener('click', () => {
-    const val = input.value.trim();
-    if (!val.startsWith('sk-ant-')) {
-      toast('Key should start with sk-ant-', 'error');
-      return;
-    }
-    Storage.setApiKey(val);
-    gate.style.display = 'none';
-    showApp();
-  });
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') btn.click();
-  });
+  $('key-gate').style.display = 'none';
+  showApp();
 }
 
 function showApp() {
@@ -334,12 +345,43 @@ function initScoreModal() {
   });
 }
 
-// ── API Key Reset ──
+// ── API Key Modal ──
 function initKeyReset() {
-  $('clear-key-btn').addEventListener('click', () => {
+  $('clear-key-btn').addEventListener('click', openKeyModal);
+  $('key-modal-close').addEventListener('click', closeKeyModal);
+  $('key-modal-overlay').addEventListener('click', closeKeyModal);
+
+  $('modal-key-save').addEventListener('click', () => {
+    const key   = $('modal-key-input').value.trim();
+    const proxy = $('modal-proxy-input').value.trim();
+    if (key && !key.startsWith('sk-ant-')) {
+      toast('API key should start with sk-ant-', 'error');
+      return;
+    }
+    if (key) Storage.setApiKey(key);
+    if (proxy) Storage.setProxyUrl(proxy);
+    else Storage.clearProxyUrl();
+    closeKeyModal();
+    toast('Settings saved.', 'success');
+  });
+
+  $('modal-key-clear').addEventListener('click', () => {
     Storage.clearApiKey();
+    Storage.clearProxyUrl();
     location.reload();
   });
+}
+
+function openKeyModal() {
+  $('modal-key-input').value  = '';   // never pre-fill key for security
+  $('modal-proxy-input').value = Storage.getProxyUrl();
+  $('key-modal').classList.remove('hidden');
+  $('key-modal-overlay').classList.remove('hidden');
+}
+
+function closeKeyModal() {
+  $('key-modal').classList.add('hidden');
+  $('key-modal-overlay').classList.add('hidden');
 }
 
 // ── Boot ──

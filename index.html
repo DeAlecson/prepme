@@ -15,10 +15,54 @@
   <div id="key-gate" class="gate-overlay">
     <div class="gate-card">
       <div class="gate-logo">PrepMe</div>
-      <p class="gate-sub">Enter your Anthropic API key to begin. It's stored only for this session and never sent anywhere except Anthropic's API.</p>
+      <p class="gate-sub">Enter your Anthropic API key. Stored in session only — never logged or shared.</p>
+
+      <div class="gate-field-label">Anthropic API Key <span class="badge-required">Required</span></div>
       <input id="gate-key-input" type="password" class="gate-input" placeholder="sk-ant-..." autocomplete="off" />
+
+      <div class="gate-field-label" style="margin-top:4px">
+        Proxy URL <span class="badge-optional">Required for GitHub Pages</span>
+      </div>
+      <input id="gate-proxy-input" type="url" class="gate-input" placeholder="https://your-worker.workers.dev" autocomplete="off" />
+      <p class="gate-proxy-help">
+        Direct browser calls to Anthropic are blocked by CORS.
+        Deploy the free <a href="https://github.com/DeAlecson/prepme/blob/master/worker/proxy.js" target="_blank" rel="noopener">Cloudflare Worker proxy</a>
+        and paste its URL above. <a href="#" id="proxy-help-toggle">How?</a>
+      </p>
+      <div id="proxy-help-steps" class="gate-proxy-steps hidden">
+        <ol>
+          <li>Go to <a href="https://workers.cloudflare.com" target="_blank" rel="noopener">workers.cloudflare.com</a> → free account</li>
+          <li>Create Worker → paste the contents of <code>worker/proxy.js</code></li>
+          <li>Deploy → copy the <code>*.workers.dev</code> URL</li>
+          <li>Paste it in the Proxy URL field above</li>
+        </ol>
+      </div>
+
       <button id="gate-submit" class="btn btn-primary">Continue</button>
-      <p class="gate-hint">Don't have a key? Get one at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
+      <p class="gate-hint">Get an API key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
+    </div>
+  </div>
+
+  <!-- API KEY UPDATE MODAL -->
+  <div id="key-modal-overlay" class="overlay hidden"></div>
+  <div id="key-modal" class="modal hidden">
+    <div class="modal-header">
+      <span class="modal-title">API Settings</span>
+      <button id="key-modal-close" class="icon-btn">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div class="gate-field-label">Anthropic API Key</div>
+        <input id="modal-key-input" type="password" class="gate-input" placeholder="sk-ant-..." autocomplete="off" />
+      </div>
+      <div>
+        <div class="gate-field-label">Proxy URL</div>
+        <input id="modal-proxy-input" type="url" class="gate-input" placeholder="https://your-worker.workers.dev" autocomplete="off" />
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button id="modal-key-clear" class="btn btn-ghost">Clear &amp; Sign Out</button>
+        <button id="modal-key-save" class="btn btn-primary">Save</button>
+      </div>
     </div>
   </div>
 

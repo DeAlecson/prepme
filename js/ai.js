@@ -2,7 +2,12 @@
 
 const AI = {
   MODEL: 'claude-haiku-4-5-20251001',
-  API_URL: 'https://api.anthropic.com/v1/messages',
+  DIRECT_URL: 'https://api.anthropic.com/v1/messages',
+
+  get API_URL() {
+    const proxy = Storage.getProxyUrl();
+    return proxy ? proxy.replace(/\/$/, '') + '/v1/messages' : this.DIRECT_URL;
+  },
 
   // Pricing per token (Claude Haiku 4.5 approximate)
   PRICE_INPUT:  0.80 / 1_000_000,
