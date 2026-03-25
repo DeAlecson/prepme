@@ -2,12 +2,15 @@
 
 const APP_VERSION = '1.1.4';
 
+// Keys that belong to the USER and must never be wiped on version bump
+const PRESERVE_KEYS = ['prepme_profiles'];
+
 function initVersion() {
   const stored = localStorage.getItem('prepme_version');
   if (stored !== APP_VERSION) {
-    // Clear all prepme_ keys on version bump
+    // Clear only cache/config keys — never touch user data
     Object.keys(localStorage)
-      .filter(k => k.startsWith('prepme_'))
+      .filter(k => k.startsWith('prepme_') && !PRESERVE_KEYS.includes(k))
       .forEach(k => localStorage.removeItem(k));
     localStorage.setItem('prepme_version', APP_VERSION);
   }
