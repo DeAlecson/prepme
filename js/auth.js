@@ -20,7 +20,12 @@ const Auth = {
     // when both this listener and getSession() try to run _onSignedIn simultaneously.
     this.client.auth.onAuthStateChange(async (event, session) => {
       this.session = session;
-      if (event === 'SIGNED_IN' && session && this._booted) {
+      if (event === 'PASSWORD_RECOVERY') {
+        // User clicked reset link — show set-new-password form
+        this._hideLoader();
+        this._showStep('reset');
+        this._showGate();
+      } else if (event === 'SIGNED_IN' && session && this._booted) {
         // Only handle post-boot sign-ins (e.g. email confirmation redirect)
         await this._onSignedIn(session);
       } else if (event === 'SIGNED_OUT') {
@@ -135,6 +140,16 @@ const Auth = {
     return error ? { ok: false, error: error.message } : { ok: true };
   },
 
+  // ── Password reset email ───────────────────────────────
+  async sendPasswordReset(email) {
+    const redirectTo = window.location.href.split('?')[0].split('#')[0];
+    const { error } = await this.client.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      { redirectTo }
+    );
+    return error ? { ok: false, error: error.message } : { ok: true };
+  },
+
   // ── Sign up (validates invite code first) ─────────────
   async signUp(email, password, code) {
     const upper = code.trim().toUpperCase();
@@ -242,13 +257,13 @@ const Auth = {
     if (el) el.classList.add('hidden');
   },
   _showStep(step) {
-    ['login', 'register', 'invite'].forEach(s => {
+    ['login', 'register', 'invite', 'reset'].forEach(s => {
       const el = $(`auth-step-${s}`);
       if (el) el.classList.toggle('hidden', s !== step);
     });
-    // Show/hide tabs — hide on invite step
+    // Hide tabs on invite/reset steps
     const tabs = $('auth-tabs');
-    if (tabs) tabs.classList.toggle('hidden', step === 'invite');
+    if (tabs) tabs.classList.toggle('hidden', step === 'invite' || step === 'reset');
   },
 };
 
@@ -354,6 +369,54 @@ function initAuthGate() {
       e.target.setSelectionRange(pos, pos);
     });
   }
+
+  // ── Forgot password ──────────────────────────────────
+  $('auth-forgot-link')?.addEventListener('click', async e => {
+    e.preventDefault();
+    const email = $('auth-login-email').value.trim();
+    if (!email || !email.includes('@')) {
+      toast('Enter your email above first, then click Forgot password.', 'error');
+      return;
+    }
+    const res = await Auth.sendPasswordReset(email);
+    if (res.ok) {
+      toast('Password reset email sent — check your inbox.', 'success');
+    } else {
+      toast(res.error || 'Failed to send reset email.', 'error');
+    }
+  });
+
+  // ── Set new password (after reset link click) ────────
+  const newPwInput = $('auth-newpw-input');
+  const newPwBar   = $('auth-newpw-bar');
+  const newPwLabel = $('auth-newpw-label');
+  const newPwStr   = $('auth-newpw-strength');
+  newPwInput?.addEventListener('input', () => {
+    const val = newPwInput.value;
+    if (!val) { newPwStr.classList.add('hidden'); return; }
+    newPwStr.classList.remove('hidden');
+    const r = Auth.validatePassword(val);
+    newPwBar.style.width = `${r.score * 25}%`;
+    newPwBar.className = `pw-bar pw-bar-${r.color}`;
+    newPwLabel.textContent = r.label;
+    newPwLabel.className = `pw-label pw-label-${r.color}`;
+  });
+
+  $('auth-newpw-btn')?.addEventListener('click', async () => {
+    const pw = $('auth-newpw-input').value;
+    const strength = Auth.validatePassword(pw);
+    if (strength.score < 2) {
+      toast('Password too weak — use 8+ chars with numbers and symbols.', 'error');
+      return;
+    }
+    const btn = $('auth-newpw-btn');
+    btn.disabled = true; btn.textContent = 'Updating…';
+    const { error } = await Auth.client.auth.updateUser({ password: pw });
+    btn.disabled = false; btn.textContent = 'Update Password';
+    if (error) { toast(error.message, 'error'); return; }
+    toast('Password updated! Signing you in…', 'success');
+    // SIGNED_IN fires automatically after updateUser — _onSignedIn will launch app
+  });
 
   // ── Invite code re-activation (inactive user) ────────
   const codeBtn   = $('auth-code-btn');
