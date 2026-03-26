@@ -6,17 +6,17 @@
   "scope": "/prepme/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "background_color": "#080c14",
+  "theme_color": "#080c14",
   "icons": [
     {
-      "src": "icons/apple-touch-icon.png",
+      "src": "icons/apple-touch-icon-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/apple-touch-icon.png",
+      "src": "icons/apple-touch-icon-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
