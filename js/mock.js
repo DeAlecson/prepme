@@ -14,6 +14,14 @@ const Mock = {
   _ttsReady: false,
   _ttsVoices: [],
 
+  // Mic / waveform state
+  _micActive:    false,
+  _recognition:  null,
+  _audioCtx:     null,
+  _analyser:     null,
+  _micStream:    null,
+  _waveformRAF:  null,
+
   MODES: ['Junior', 'Mid', 'Senior', 'Recruiter Screen', 'Hiring Manager', 'Technical Deep Dive'],
 
   // ── TTS Engine ────────────────────────────────────────
@@ -101,6 +109,108 @@ const Mock = {
     });
   },
 
+  // ── Mic + Speech Recognition ──────────────────────────
+  _initMic() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    this._recognition = new SR();
+    this._recognition.continuous      = true;
+    this._recognition.interimResults   = true;
+    this._recognition.lang             = 'en-US';
+
+    this._recognition.onresult = (e) => {
+      let final = '', interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        e.results[i].isFinal
+          ? (final += e.results[i][0].transcript + ' ')
+          : (interim = e.results[i][0].transcript);
+      }
+      const input = $('mock-input');
+      if (input) { input.value = final + interim; autoGrow(input); }
+    };
+
+    this._recognition.onend = () => {
+      if (this._micActive) {
+        try { this._recognition.start(); } catch {}
+      }
+    };
+  },
+
+  async toggleMic() {
+    if (this._micActive) {
+      this._micActive = false;
+      try { this._recognition?.stop(); } catch {}
+      this._stopWaveform();
+      this._micStream?.getTracks().forEach(t => t.stop());
+      this._micStream = null;
+      const btn = $('mock-mic-btn');
+      if (btn) { btn.classList.remove('mic-active'); btn.innerHTML = _micIcon(); }
+      return;
+    }
+
+    if (!this._recognition) {
+      toast('Speech recognition not supported in this browser.', 'error');
+      return;
+    }
+
+    try {
+      this._micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch {
+      toast('Microphone access denied.', 'error');
+      return;
+    }
+
+    this._micActive = true;
+
+    // Wire up AudioContext analyser for the waveform
+    this._audioCtx  = new AudioContext();
+    this._analyser  = this._audioCtx.createAnalyser();
+    this._analyser.fftSize = 128;
+    this._audioCtx.createMediaStreamSource(this._micStream).connect(this._analyser);
+
+    try { this._recognition.start(); } catch {}
+    this._startWaveform();
+
+    const btn = $('mock-mic-btn');
+    if (btn) { btn.classList.add('mic-active'); btn.innerHTML = _stopIcon(); }
+  },
+
+  _startWaveform() {
+    const waveform = $('mock-waveform');
+    if (!waveform) return;
+    waveform.classList.remove('hidden');
+
+    const bars = Array.from({ length: 5 }, (_, i) => document.getElementById(`wbar-${i}`));
+    const data = new Uint8Array(this._analyser.frequencyBinCount);
+    // Frequency bins to sample (low → high bands)
+    const bins = [3, 6, 12, 22, 38];
+
+    const animate = () => {
+      if (!this._micActive) return;
+      this._waveformRAF = requestAnimationFrame(animate);
+      this._analyser.getByteFrequencyData(data);
+      bars.forEach((bar, i) => {
+        if (!bar) return;
+        const amp = data[bins[i]] / 255;
+        // Center bar (index 2) gets a slight boost
+        const boost = i === 2 ? 1.2 : 1;
+        const h = Math.max(4, Math.round(amp * 36 * boost));
+        bar.style.height = `${h}px`;
+      });
+    };
+    animate();
+  },
+
+  _stopWaveform() {
+    if (this._waveformRAF) { cancelAnimationFrame(this._waveformRAF); this._waveformRAF = null; }
+    const waveform = $('mock-waveform');
+    if (waveform) waveform.classList.add('hidden');
+    if (this._audioCtx) { this._audioCtx.close().catch(() => {}); this._audioCtx = null; this._analyser = null; }
+    // Reset bars to min height
+    Array.from({ length: 5 }, (_, i) => document.getElementById(`wbar-${i}`))
+      .forEach(b => { if (b) b.style.height = '4px'; });
+  },
+
   // ── Init & Shell ──────────────────────────────────────
   init(portal) {
     this.interviewer = portal.interviewer;
@@ -111,7 +221,9 @@ const Mock = {
     this.messages = [];
     this.started = false;
     this.ended = false;
+    this._micActive = false;
     this._initTTS();
+    this._initMic();
     this.renderShell();
   },
 
@@ -144,8 +256,13 @@ const Mock = {
       </div>
     `;
 
+    // Set initial mic icon
+    const micBtn = $('mock-mic-btn');
+    if (micBtn) micBtn.innerHTML = _micIcon();
+
     $('mock-send').onclick   = () => Mock.sendMessage();
     $('mock-end').onclick    = () => Mock.endInterview();
+    micBtn?.addEventListener('click', () => Mock.toggleMic());
     $('mock-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); Mock.sendMessage(); }
     });
@@ -262,8 +379,15 @@ const Mock = {
       toast('Have at least one exchange before ending.', 'error');
       return;
     }
-    // Stop TTS before scoring
+    // Stop TTS and mic before scoring
     window.speechSynthesis?.cancel();
+    if (this._micActive) {
+      this._micActive = false;
+      try { this._recognition?.stop(); } catch {}
+      this._stopWaveform();
+      this._micStream?.getTracks().forEach(t => t.stop());
+      this._micStream = null;
+    }
 
     this.ended = true;
     $('mock-status-chip').textContent = 'Scoring...';

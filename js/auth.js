@@ -4,10 +4,11 @@ const Auth = {
   SUPABASE_URL: 'https://bhywxbtmgcxcpnctximg.supabase.co',
   SUPABASE_ANON: 'sb_publishable_f49McYCrNCAS0Zjw3ei0Lw_1-S36V-O',
 
-  client:    null,
-  session:   null,
-  profile:   null,
-  _booted:   false,  // prevents double-fire of _onSignedIn
+  client:          null,
+  session:         null,
+  profile:         null,
+  _booted:         false,   // prevents double-fire of _onSignedIn
+  _passwordRecovery: false, // true while waiting for user to set new password
 
   // ── Bootstrap ──────────────────────────────────────────
   async init() {
@@ -21,28 +22,35 @@ const Auth = {
     this.client.auth.onAuthStateChange(async (event, session) => {
       this.session = session;
       if (event === 'PASSWORD_RECOVERY') {
-        // User clicked reset link — show set-new-password form
+        // User clicked reset link — lock into reset flow; boot path must not override this
+        this._passwordRecovery = true;
         this._hideLoader();
         this._showStep('reset');
         this._showGate();
       } else if (event === 'SIGNED_IN' && session && this._booted) {
-        // Only handle post-boot sign-ins (e.g. email confirmation redirect)
-        await this._onSignedIn(session);
+        // Skip SIGNED_IN if we're mid-password-reset (user hasn't set new password yet)
+        if (!this._passwordRecovery) {
+          await this._onSignedIn(session);
+        }
       } else if (event === 'SIGNED_OUT') {
         this.profile = null;
         this._booted = false;
+        this._passwordRecovery = false;
         this._showStep('login');
         this._showGate();
       }
     });
 
+    // Small delay so onAuthStateChange can set _passwordRecovery before getSession runs
+    await new Promise(r => setTimeout(r, 80));
+
     // Single authoritative boot path — no concurrent lock contention
     const { data: { session } } = await this.client.auth.getSession();
     this._booted = true;
-    if (session) {
+    if (session && !this._passwordRecovery) {
       this.session = session;
       await this._onSignedIn(session);
-    } else {
+    } else if (!session && !this._passwordRecovery) {
       this._showStep('login');
       this._showGate();
     }
@@ -413,9 +421,14 @@ function initAuthGate() {
     }
     const btn = $('auth-newpw-btn');
     btn.disabled = true; btn.textContent = 'Updating…';
+    // Clear the flag so the SIGNED_IN event that follows updateUser launches the app
+    Auth._passwordRecovery = false;
     const { error } = await Auth.client.auth.updateUser({ password: pw });
     btn.disabled = false; btn.textContent = 'Update Password';
-    if (error) { toast(error.message, 'error'); return; }
+    if (error) {
+      Auth._passwordRecovery = true; // restore if update failed
+      toast(error.message, 'error'); return;
+    }
     toast('Password updated! Signing you in…', 'success');
     // SIGNED_IN fires automatically after updateUser — _onSignedIn will launch app
   });

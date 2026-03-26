@@ -39,7 +39,8 @@ const Admin = {
     const { data: users, error } = await query;
 
     if (error || !users) {
-      list.innerHTML = `<div class="admin-loading" style="color:var(--red)">Failed to load users.</div>`;
+      console.error('[PrepMe] loadUsers error:', error);
+      list.innerHTML = `<div class="admin-loading" style="color:var(--red)">Failed to load users: ${error?.message || 'unknown error'}</div>`;
       return;
     }
 
@@ -100,15 +101,13 @@ const Admin = {
 
     const { data: codes, error } = await Auth.client
       .from('invite_codes')
-      .select(`
-        id, code, is_active, created_at, used_at,
-        used_by_profile:profiles!invite_codes_used_by_fkey(email)
-      `)
+      .select('id, code, is_active, created_at, used_at, used_by')
       .order('created_at', { ascending: false })
       .limit(50);
 
     if (error || !codes) {
-      list.innerHTML = `<div class="admin-loading" style="color:var(--red)">Failed to load codes.</div>`;
+      console.error('[PrepMe] loadCodes error:', error);
+      list.innerHTML = `<div class="admin-loading" style="color:var(--red)">Failed to load codes: ${error?.message || 'unknown error'}</div>`;
       return;
     }
 
@@ -117,12 +116,21 @@ const Admin = {
       return;
     }
 
+    // Resolve used_by UUIDs → emails in a single extra query
+    const usedIds = [...new Set(codes.filter(c => c.used_by).map(c => c.used_by))];
+    let emailMap = {};
+    if (usedIds.length) {
+      const { data: profiles } = await Auth.client
+        .from('profiles').select('id, email').in('id', usedIds);
+      if (profiles) profiles.forEach(p => { emailMap[p.id] = p.email; });
+    }
+
     list.innerHTML = codes.map(c => `
       <div class="admin-code-row ${c.is_active ? '' : 'used'}">
         <div class="admin-code-value">${escapeHTML(c.code)}</div>
         <div class="admin-code-meta">
           ${c.used_at
-            ? `Used by ${escapeHTML(c.used_by_profile?.email || 'unknown')} · ${formatDate(c.used_at)}`
+            ? `Used by ${escapeHTML(emailMap[c.used_by] || c.used_by?.slice(0,8) + '…' || 'unknown')} · ${formatDate(c.used_at)}`
             : `Created ${formatDate(c.created_at)}`}
         </div>
         <div class="admin-code-status ${c.is_active ? 'active' : 'used'}">
