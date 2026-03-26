@@ -33,6 +33,7 @@ const Auth = {
       this._showStep('login');
       this._showGate();
     }
+    this._hideLoader();
   },
 
   // ── Session handler ────────────────────────────────────
@@ -51,6 +52,19 @@ const Auth = {
     }
 
     this.profile = profile;
+
+    // Admin always bypasses the invite/active check
+    if (this.isAdmin()) {
+      // Auto-fix inactive admin (e.g. schema re-run cleared is_active)
+      if (!this.profile.is_active) {
+        await this.client.from('profiles')
+          .update({ is_active: true })
+          .eq('id', session.user.id);
+        this.profile.is_active = true;
+      }
+      await this._launchApp();
+      return;
+    }
 
     if (!this.profile.is_active) {
       // Check for a pending invite code saved before email confirmation redirect
@@ -82,6 +96,7 @@ const Auth = {
   },
 
   async _launchApp() {
+    this._hideLoader();
     this._hideGate();
     $('app').classList.remove('hidden');
     this._updateNavUser();
@@ -190,7 +205,12 @@ const Auth = {
 
   // ── Sign out ───────────────────────────────────────────
   async signOut() {
-    await this.client.auth.signOut();
+    try {
+      await this.client.auth.signOut();
+    } catch {
+      // Lock contention — force local session clear
+      await this.client.auth.signOut({ scope: 'local' });
+    }
     this.session = null;
     this.profile = null;
   },
@@ -202,11 +222,16 @@ const Auth = {
 
   // ── Gate UI ────────────────────────────────────────────
   _showGate() {
+    this._hideLoader();
     $('auth-gate').classList.remove('hidden');
     $('app').classList.add('hidden');
   },
   _hideGate() {
     $('auth-gate').classList.add('hidden');
+  },
+  _hideLoader() {
+    const el = $('app-loader');
+    if (el) el.classList.add('hidden');
   },
   _showStep(step) {
     ['login', 'register', 'invite'].forEach(s => {

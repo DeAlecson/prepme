@@ -555,6 +555,35 @@ input, textarea { font-family: inherit; }
   .intake-footer { padding: 0; }
 }
 
+/* ── Initial Loader ── */
+.app-loader {
+  position: fixed; inset: 0; z-index: 99999;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 28px;
+  transition: opacity 0.3s ease;
+}
+.app-loader.hidden {
+  display: none;
+}
+.loader-brand {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px; font-weight: 800;
+  color: var(--accent-light);
+  letter-spacing: -0.5px;
+}
+/* shadcn-style spinner: single ring with a bright arc */
+.loader-spinner {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent-light);
+  border-right-color: color-mix(in srgb, var(--accent-light) 30%, transparent);
+  animation: loader-spin 0.7s linear infinite;
+}
+@keyframes loader-spin { to { transform: rotate(360deg); } }
+
 /* ── Auth Gate Extras ── */
 .gate-sent-icon {
   font-size: 36px; text-align: center;
