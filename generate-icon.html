@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>PrepMe Icon Generator</title>
+  <style>
+    body { background: #111; color: #fff; font-family: system-ui;
+           display: flex; flex-direction: column; align-items: center;
+           justify-content: center; min-height: 100vh; gap: 20px; margin: 0; }
+    canvas { border-radius: 22px; box-shadow: 0 0 60px rgba(6,214,224,0.3); }
+    button { background: #0ea5e9; color: #fff; border: none; padding: 12px 28px;
+             border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #38bdf8; }
+    p { color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h2 style="margin:0;letter-spacing:-0.5px">PrepMe Icon Generator</h2>
+  <canvas id="c" width="512" height="512"></canvas>
+  <button id="dl">Download apple-touch-icon.png</button>
+  <p>Open in Chrome → click Download → move PNG into <code>icons/</code></p>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx    = canvas.getContext('2d');
+    const W = 512, H = 512;
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // ── Background ─────────────────────────────────────
+      const bg = ctx.createLinearGradient(0,0,W,H);
+      bg.addColorStop(0,'#080c14'); bg.addColorStop(1,'#0d1219');
+      roundRect(ctx,0,0,W,H,108); ctx.fillStyle=bg; ctx.fill();
+
+      const glow = ctx.createRadialGradient(256,230,0,256,230,260);
+      glow.addColorStop(0,'rgba(6,214,224,0.07)'); glow.addColorStop(1,'rgba(6,214,224,0)');
+      roundRect(ctx,0,0,W,H,108); ctx.fillStyle=glow; ctx.fill();
+
+      // ── Gradient (top-left cyan → bottom-right violet) ─
+      const grad = ctx.createLinearGradient(80,80,432,432);
+      grad.addColorStop(0,'#06d6e0');
+      grad.addColorStop(0.45,'#0ea5e9');
+      grad.addColorStop(1,'#7c3aed');
+
+      const SW = 28;
+      ctx.save();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth   = SW;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.shadowColor = '#06d6e0';
+      ctx.shadowBlur  = 20;
+
+      // ─────────────────────────────────────────────────────
+      // OUTER SPEECH BUBBLE RING
+      // Large circle, gap at bottom-left, filled by a triangular tail
+      // Center slightly above-right so the tail has room below-left
+      // ─────────────────────────────────────────────────────
+      const OCX=264, OCY=226, OR=160;
+
+      // Arc goes from 12-o'clock (-90°) clockwise, stopping at ~205°
+      // (measured from +x axis, so 205° is lower-left area)
+      const a1 = -Math.PI/2;                    // start: top
+      const a2 =  205 * Math.PI / 180;          // end: lower-left
+
+      // Two gap endpoints on the circle
+      const p1x = OCX + OR * Math.cos(a2);      // ~160,355
+      const p1y = OCY + OR * Math.sin(a2);
+
+      // The return point comes back at ~255° (a bit further around)
+      const a3  = 255 * Math.PI / 180;
+      const p2x = OCX + OR * Math.cos(a3);      // ~222,391
+      const p2y = OCY + OR * Math.sin(a3);
+
+      const tipX = 108, tipY = 436;             // tail spike tip
+
+      ctx.beginPath();
+      ctx.arc(OCX, OCY, OR, a1, a2, false);     // big clockwise arc
+      ctx.lineTo(tipX, tipY);                   // down to tail tip
+      ctx.lineTo(p2x, p2y);                     // back up to ring
+      ctx.stroke();
+
+      // ─────────────────────────────────────────────────────
+      // INNER LOWERCASE "p"
+      // Bowl: small circle centred inside the bubble
+      // Stem: LEFT side of bowl, descends toward tail area
+      // ─────────────────────────────────────────────────────
+      const ICX=264, ICY=210, IR=76;
+
+      // Draw the bowl circle
+      ctx.beginPath();
+      ctx.arc(ICX, ICY, IR, 0, Math.PI*2);
+      ctx.stroke();
+
+      // Stem from the bottom of the bowl going straight down
+      // (bottom of inner circle: ICY + IR)
+      const stemTopX = ICX;           // centre-bottom of bowl
+      const stemTopY = ICY + IR;
+      const stemBotX = ICX - 16;      // slight leftward drift matching reference
+      const stemBotY = 408;
+
+      ctx.beginPath();
+      ctx.moveTo(stemTopX - IR * 0.08, ICY);  // exit from left-centre of bowl
+      ctx.bezierCurveTo(
+        stemTopX - IR * 0.08, ICY + IR * 0.9, // control 1
+        stemBotX, stemBotY - 60,               // control 2
+        stemBotX, stemBotY                     // end
+      );
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    draw();
+
+    document.getElementById('dl').addEventListener('click', () => {
+      draw();
+      const a = document.createElement('a');
+      a.download = 'apple-touch-icon.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    });
+  </script>
+</body>
+</html>

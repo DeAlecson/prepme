@@ -1,16 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#080c14"/>
+    <!-- Gradient: cyan top-left → blue mid → violet bottom-right -->
+    <linearGradient id="g" x1="10%" y1="10%" x2="90%" y2="90%">
+      <stop offset="0%"   stop-color="#00d4cc"/>
+      <stop offset="50%"  stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#080c14"/>
       <stop offset="100%" stop-color="#0d1219"/>
     </linearGradient>
-    <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#7dd3fc"/>
-      <stop offset="100%" stop-color="#0ea5e9"/>
-    </linearGradient>
+
+    <!-- Soft neon glow -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
-  <ellipse cx="13" cy="16" rx="9" ry="9" fill="#0ea5e9" opacity="0.10"/>
-  <text x="2" y="24" font-family="-apple-system,system-ui,sans-serif" font-size="22" font-weight="900" fill="url(#pg)">P</text>
-  <polygon points="26,2 24,7 27,7 25,12 30,5 27,5" fill="#f59e0b"/>
+
+  <!-- Background rounded rect -->
+  <rect width="100" height="100" rx="21" fill="url(#bg)"/>
+
+  <g fill="none" stroke="url(#g)" stroke-linecap="round" stroke-linejoin="round"
+     stroke-width="6.4" filter="url(#glow)">
+
+    <!--
+      OUTER RING — 330° clockwise arc, 30° gap at ~7 o'clock (bottom-left).
+      Circle center (50, 47), R=33.
+
+      Arc runs FROM 230° (clockwise-from-top) → clockwise 330° → TO 200°.
+        At 230°: x=50+33·sin230°=24.7, y=47−33·cos230°=68.2  → (25, 68)
+        At 200°: x=50+33·sin200°=38.7, y=47−33·cos200°=78.0  → (39, 78)
+      large-arc=1, sweep=1 (clockwise)
+    -->
+    <path d="M 25 68 A 33 33 0 1 1 39 78"/>
+
+    <!--
+      INNER BOWL — full circle centred inside the ring.
+      Center (49, 42), R=17.
+    -->
+    <circle cx="49" cy="42" r="17"/>
+
+    <!--
+      TAIL / STEM — exits the bowl at ~220° (bottom-left edge, ≈38,55),
+      curves down through the ring gap and ends in a rounded tip at (37,82).
+      stroke-linecap="round" gives the natural teardrop tip.
+    -->
+    <path d="M 38 55 C 31 66 31 75 37 82"/>
+
+  </g>
 </svg>
