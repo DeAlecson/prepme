@@ -65,7 +65,7 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
 /* ── Top Nav ── */
 .topnav {
   position: sticky; top: 0; z-index: 200;
-  background: rgba(10, 10, 15, 0.97);
+  background: rgba(8, 12, 20, 0.97);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   display: flex; flex-direction: column;
@@ -454,11 +454,11 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
   border-radius: 99px;
   transition: height 0.06s ease;
 }
-.waveform-bar:nth-child(1) { background: #7c3aed; }
-.waveform-bar:nth-child(2) { background: #9d59f5; }
-.waveform-bar:nth-child(3) { background: #c4b5fd; }
-.waveform-bar:nth-child(4) { background: #9d59f5; }
-.waveform-bar:nth-child(5) { background: #7c3aed; }
+.waveform-bar:nth-child(1) { background: #0ea5e9; }
+.waveform-bar:nth-child(2) { background: #22c4f0; }
+.waveform-bar:nth-child(3) { background: #7dd3fc; }
+.waveform-bar:nth-child(4) { background: #22c4f0; }
+.waveform-bar:nth-child(5) { background: #0ea5e9; }
 
 /* ── Score Modal ── */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 400; animation: fadeIn 0.2s ease; }

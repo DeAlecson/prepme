@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#130728"/>
-      <stop offset="100%" stop-color="#0a0a0f"/>
+      <stop offset="0%" stop-color="#080c14"/>
+      <stop offset="100%" stop-color="#0d1219"/>
     </linearGradient>
     <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#c4b5fd"/>
-      <stop offset="100%" stop-color="#7c3aed"/>
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
     </linearGradient>
   </defs>
   <rect width="32" height="32" rx="7" fill="url(#bg)"/>
-  <ellipse cx="13" cy="16" rx="9" ry="9" fill="#7c3aed" opacity="0.15"/>
+  <ellipse cx="13" cy="16" rx="9" ry="9" fill="#0ea5e9" opacity="0.10"/>
   <text x="2" y="24" font-family="-apple-system,system-ui,sans-serif" font-size="22" font-weight="900" fill="url(#pg)">P</text>
   <polygon points="26,2 24,7 27,7 25,12 30,5 27,5" fill="#f59e0b"/>
 </svg>
