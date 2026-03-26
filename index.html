@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="PrepMe" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon-v2.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-v3.png" />
 
   <link rel="stylesheet" href="css/themes.css" />
   <link rel="stylesheet" href="css/styles.css" />
@@ -24,14 +24,20 @@
 
   <!-- ── INITIAL LOADER ────────────────────────────────── -->
   <div id="app-loader" class="app-loader">
-    <div class="loader-brand"><span>Prep</span><span class="brand-me">Me</span></div>
+    <div class="loader-brand">
+      <img src="favicon.svg" class="loader-logo-img" alt="PrepMe" />
+      <span><span class="brand-prep">Prep</span><span class="brand-me">Me</span></span>
+    </div>
     <div class="loader-spinner"></div>
   </div>
 
   <!-- ── AUTH GATE ─────────────────────────────────────── -->
   <div id="auth-gate" class="gate-overlay hidden">
     <div class="gate-card">
-      <div class="gate-logo"><span>Prep</span><span class="brand-me">Me</span></div>
+      <div class="gate-logo">
+        <img src="favicon.svg" class="gate-logo-img" alt="PrepMe" />
+        <span><span class="brand-prep">Prep</span><span class="brand-me">Me</span></span>
+      </div>
 
       <!-- Auth tabs -->
       <div class="gate-auth-tabs" id="auth-tabs">
@@ -99,7 +105,10 @@
     <!-- TOP NAV -->
     <header class="topnav" id="topnav">
       <div class="nav-top">
-        <div class="nav-brand"><span>Prep</span><span class="brand-me">Me</span></div>
+        <div class="nav-brand">
+          <img src="favicon.svg" class="nav-logo-img" alt="" />
+          <span><span class="brand-prep">Prep</span><span class="brand-me">Me</span></span>
+        </div>
         <div class="nav-actions">
           <div id="token-bar" class="token-bar hidden"></div>
           <button id="profiles-btn" class="btn btn-ghost btn-sm">

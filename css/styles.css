@@ -39,6 +39,12 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
   color: var(--accent-light);
   letter-spacing: -0.5px;
   margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+.gate-logo-img {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
 }
 .gate-sub { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
 .gate-input {
@@ -80,8 +86,15 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
   color: var(--accent-light);
   letter-spacing: -0.3px;
   white-space: nowrap; flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav-logo-img {
+  width: 24px; height: 24px;
+  border-radius: 5px;
+  flex-shrink: 0;
 }
 .brand-me { color: #fff; font-style: italic; }
+.brand-prep { color: var(--accent-light); }
 .nav-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .nav-action-icon { font-size: 14px; }
 .nav-tab-strip {
@@ -621,6 +634,11 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
   font-size: 32px; font-weight: 800;
   color: var(--accent-light);
   letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 14px;
+}
+.loader-logo-img {
+  width: 48px; height: 48px;
+  border-radius: 11px;
 }
 /* shadcn-style spinner: single ring with a bright arc */
 .loader-spinner {

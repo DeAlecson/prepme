@@ -10,14 +10,14 @@
   "theme_color": "#080c14",
   "icons": [
     {
-      "src": "icons/apple-touch-icon-v2.png",
-      "sizes": "512x512",
+      "src": "icons/apple-touch-icon-v3.png",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/apple-touch-icon-v2.png",
-      "sizes": "512x512",
+      "src": "icons/apple-touch-icon-v3.png",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "maskable"
     },
