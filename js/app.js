@@ -279,6 +279,26 @@ function initSettings() {
   $('settings-modal-close')?.addEventListener('click', closeSettings);
   $('settings-modal-overlay')?.addEventListener('click', closeSettings);
 
+  // Display name save
+  $('settings-name-save')?.addEventListener('click', async () => {
+    const input = $('settings-name-input');
+    const name = input?.value.trim();
+    if (!name) { toast('Enter a name.', 'error'); return; }
+    const btn = $('settings-name-save');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    const { error } = await Auth.client
+      .from('profiles')
+      .update({ display_name: name })
+      .eq('id', Auth.session.user.id);
+    btn.disabled = false;
+    btn.textContent = 'Save';
+    if (error) { toast('Failed to save name.', 'error'); return; }
+    Auth.profile.display_name = name;
+    Auth._updateNavUser();
+    toast('Name saved.', 'success');
+  });
+
   // Advanced Mode toggle
   const toggle = $('advanced-mode-toggle');
   if (toggle) {
@@ -302,6 +322,8 @@ function initSettings() {
 function openSettings() {
   const toggle = $('advanced-mode-toggle');
   if (toggle) toggle.checked = Storage.getAdvancedMode();
+  const nameInput = $('settings-name-input');
+  if (nameInput) nameInput.value = Auth.profile?.display_name || '';
   $('settings-modal').classList.remove('hidden');
   $('settings-modal-overlay').classList.remove('hidden');
 }

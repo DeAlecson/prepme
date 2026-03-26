@@ -32,6 +32,7 @@ input, textarea { font-family: inherit; }
   font-size: 24px; font-weight: 800;
   color: var(--accent-light);
   letter-spacing: -0.5px;
+  margin-bottom: 4px;
 }
 .gate-sub { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
 .gate-input {
@@ -74,6 +75,7 @@ input, textarea { font-family: inherit; }
   letter-spacing: -0.3px;
   white-space: nowrap; flex-shrink: 0;
 }
+.brand-me { color: #fff; font-style: italic; }
 .nav-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .nav-action-icon { font-size: 14px; }
 .nav-tab-strip {
@@ -558,6 +560,43 @@ input, textarea { font-family: inherit; }
   font-size: 36px; text-align: center;
   padding: 8px 0;
 }
+
+/* Gate auth tabs */
+.gate-auth-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.gate-tab {
+  flex: 1; background: transparent; border: none;
+  color: var(--text-muted); font-size: 13px; font-weight: 500;
+  padding: 8px 0; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--t); margin-bottom: -1px;
+}
+.gate-tab:hover { color: var(--text); }
+.gate-tab.active { color: var(--accent-light); border-bottom-color: var(--accent-light); }
+
+/* Password strength indicator */
+.pw-strength {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 6px;
+}
+.pw-track {
+  flex: 1; height: 4px; background: var(--bg3);
+  border-radius: 99px; overflow: hidden;
+}
+.pw-bar {
+  height: 100%; border-radius: 99px; width: 0;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.pw-bar-red   { background: var(--red); }
+.pw-bar-amber { background: var(--amber); }
+.pw-bar-green { background: var(--green); }
+.pw-label { font-size: 11px; font-weight: 500; white-space: nowrap; }
+.pw-label-red   { color: var(--red); }
+.pw-label-amber { color: var(--amber); }
+.pw-label-green { color: var(--green); }
 
 /* ── Nav User Avatar ── */
 .nav-user-btn { gap: 8px; }

@@ -15,39 +15,48 @@
   <!-- ── AUTH GATE ─────────────────────────────────────── -->
   <div id="auth-gate" class="gate-overlay hidden">
     <div class="gate-card">
-      <div class="gate-logo">PrepMe</div>
+      <div class="gate-logo"><span>Prep</span><span class="brand-me">Me</span></div>
 
-      <!-- Step 1: Enter email -->
-      <div id="auth-step-email">
-        <p class="gate-sub">Sign in with your email to access your prep workspace.</p>
-        <div class="gate-field-label">Email Address</div>
-        <input id="auth-email-input" type="email" class="gate-input" placeholder="you@example.com" autocomplete="email" />
-        <button id="auth-send-btn" class="btn btn-primary" style="width:100%;margin-top:12px">Send Magic Link</button>
-        <p class="gate-hint">A sign-in link will be sent to your inbox. No password needed.</p>
+      <!-- Auth tabs -->
+      <div class="gate-auth-tabs" id="auth-tabs">
+        <button class="gate-tab active" id="gate-tab-login">Sign In</button>
+        <button class="gate-tab" id="gate-tab-register">Sign Up</button>
       </div>
 
-      <!-- Step 2: Link sent -->
-      <div id="auth-step-sent" class="hidden">
-        <div class="gate-sent-icon">✉️</div>
-        <p class="gate-sub">Magic link sent to <strong id="auth-sent-email"></strong>.</p>
-        <p class="gate-hint">Check your inbox and click the link. You can close this tab after clicking.</p>
-        <button id="auth-back-btn" class="btn btn-ghost" style="width:100%;margin-top:8px">← Back</button>
+      <!-- Step: Sign In -->
+      <div id="auth-step-login">
+        <div class="gate-field-label">Email</div>
+        <input id="auth-login-email" type="email" class="gate-input" placeholder="you@example.com" autocomplete="email" />
+        <div class="gate-field-label" style="margin-top:12px">Password</div>
+        <input id="auth-login-password" type="password" class="gate-input" placeholder="••••••••" autocomplete="current-password" />
+        <button id="auth-signin-btn" class="btn btn-primary" style="width:100%;margin-top:16px">Sign In</button>
+        <p class="gate-hint">No account yet? Click <strong>Sign Up</strong> above.</p>
       </div>
 
-      <!-- Step 3: Invite code (new user) -->
+      <!-- Step: Sign Up -->
+      <div id="auth-step-register" class="hidden">
+        <div class="gate-field-label">Email</div>
+        <input id="auth-register-email" type="email" class="gate-input" placeholder="you@example.com" autocomplete="email" />
+        <div class="gate-field-label" style="margin-top:12px">Password</div>
+        <input id="auth-register-password" type="password" class="gate-input" placeholder="Min 8 chars, include numbers &amp; symbols" autocomplete="new-password" />
+        <div id="auth-pw-strength" class="pw-strength hidden">
+          <div class="pw-track"><div class="pw-bar" id="auth-pw-bar"></div></div>
+          <span class="pw-label" id="auth-pw-label"></span>
+        </div>
+        <div class="gate-field-label" style="margin-top:12px">Invite Code</div>
+        <input id="auth-register-code" type="text" class="gate-input" placeholder="XXXX-XXXX" autocomplete="off" style="letter-spacing:2px" />
+        <button id="auth-signup-btn" class="btn btn-primary" style="width:100%;margin-top:16px">Create Account</button>
+        <p class="gate-hint">Need a code? Contact <a href="mailto:alecson95@gmail.com">alecson95@gmail.com</a></p>
+      </div>
+
+      <!-- Step: Invite / Re-activate (inactive account) -->
       <div id="auth-step-invite" class="hidden">
-        <p class="gate-sub">You need an invite code to access PrepMe.</p>
+        <div class="gate-sent-icon">🔑</div>
+        <p class="gate-sub">Your account needs a valid invite code to access PrepMe.</p>
         <div class="gate-field-label">Invite Code</div>
-        <input id="auth-code-input" type="text" class="gate-input" placeholder="XXXX-XXXX" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px" />
+        <input id="auth-code-input" type="text" class="gate-input" placeholder="XXXX-XXXX" autocomplete="off" style="letter-spacing:2px" />
         <button id="auth-code-btn" class="btn btn-primary" style="width:100%;margin-top:12px">Unlock Access</button>
-        <p class="gate-hint">Don't have a code? Contact <a href="mailto:alecson95@gmail.com">alecson95@gmail.com</a></p>
-      </div>
-
-      <!-- Step 4: Access denied -->
-      <div id="auth-step-denied" class="hidden">
-        <div class="gate-sent-icon">🔒</div>
-        <p class="gate-sub">Your account is inactive. Contact the admin to restore access.</p>
-        <button id="auth-denied-signout" class="btn btn-ghost" style="width:100%;margin-top:8px">Sign Out</button>
+        <button id="auth-invite-signout" class="btn btn-ghost" style="width:100%;margin-top:8px">Sign Out</button>
       </div>
     </div>
   </div>
@@ -58,7 +67,7 @@
     <!-- TOP NAV -->
     <header class="topnav" id="topnav">
       <div class="nav-top">
-        <div class="nav-brand">PrepMe</div>
+        <div class="nav-brand"><span>Prep</span><span class="brand-me">Me</span></div>
         <div class="nav-actions">
           <div id="token-bar" class="token-bar hidden"></div>
           <button id="profiles-btn" class="btn btn-ghost btn-sm">
@@ -214,7 +223,7 @@
 
     <!-- FOOTER -->
     <footer class="app-footer" id="app-footer">
-      <span>PrepMe</span>
+      <span><span style="color:var(--accent-light)">Prep</span><span>Me</span></span>
       <span class="footer-dot">·</span>
       <span id="footer-version">v2.0.0</span>
       <span class="footer-dot">·</span>
@@ -238,7 +247,15 @@
         <span class="modal-title">Settings</span>
         <button id="settings-modal-close" class="icon-btn">✕</button>
       </div>
-      <div class="modal-body" style="display:flex;flex-direction:column;gap:20px">
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:0">
+        <div class="settings-row">
+          <div style="flex:1">
+            <div class="settings-label">Display Name</div>
+            <div class="settings-hint">Used by the AI interviewer to address you.</div>
+            <input id="settings-name-input" type="text" class="gate-input" placeholder="Your name" style="margin-top:10px;max-width:240px" autocomplete="off" />
+          </div>
+          <button id="settings-name-save" class="btn btn-primary btn-sm" style="align-self:flex-end">Save</button>
+        </div>
         <div class="settings-row">
           <div>
             <div class="settings-label">Advanced Mode</div>

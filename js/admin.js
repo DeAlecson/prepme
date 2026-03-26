@@ -27,7 +27,13 @@ const Admin = {
       .order('created_at', { ascending: false });
 
     if (search.trim()) {
-      query = query.or(`email.ilike.%${search.trim()}%,id.eq.${search.trim()}`);
+      const s = search.trim();
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+      if (isUUID) {
+        query = query.or(`email.ilike.%${s}%,id.eq.${s}`);
+      } else {
+        query = query.ilike('email', `%${s}%`);
+      }
     }
 
     const { data: users, error } = await query;
