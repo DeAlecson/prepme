@@ -4,9 +4,10 @@ const Auth = {
   SUPABASE_URL: 'https://bhywxbtmgcxcpnctximg.supabase.co',
   SUPABASE_ANON: 'sb_publishable_f49McYCrNCAS0Zjw3ei0Lw_1-S36V-O',
 
-  client:  null,
-  session: null,
-  profile: null,
+  client:    null,
+  session:   null,
+  profile:   null,
+  _booted:   false,  // prevents double-fire of _onSignedIn
 
   // ── Bootstrap ──────────────────────────────────────────
   async init() {
@@ -14,18 +15,25 @@ const Auth = {
       auth: { persistSession: true, autoRefreshToken: true },
     });
 
+    // onAuthStateChange fires INITIAL_SESSION on load AND SIGNED_IN on login.
+    // We handle the initial boot only once via _booted flag to avoid lock contention
+    // when both this listener and getSession() try to run _onSignedIn simultaneously.
     this.client.auth.onAuthStateChange(async (event, session) => {
       this.session = session;
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_IN' && session && this._booted) {
+        // Only handle post-boot sign-ins (e.g. email confirmation redirect)
         await this._onSignedIn(session);
       } else if (event === 'SIGNED_OUT') {
         this.profile = null;
+        this._booted = false;
         this._showStep('login');
         this._showGate();
       }
     });
 
+    // Single authoritative boot path — no concurrent lock contention
     const { data: { session } } = await this.client.auth.getSession();
+    this._booted = true;
     if (session) {
       this.session = session;
       await this._onSignedIn(session);
