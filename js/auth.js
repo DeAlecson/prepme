@@ -4,10 +4,9 @@ const Auth = {
   SUPABASE_URL: 'https://bhywxbtmgcxcpnctximg.supabase.co',
   SUPABASE_ANON: 'sb_publishable_f49McYCrNCAS0Zjw3ei0Lw_1-S36V-O',
 
-  client:       null,
-  session:      null,
-  profile:      null,
-  _pendingCode: null, // invite code held during signup flow
+  client:  null,
+  session: null,
+  profile: null,
 
   // ── Bootstrap ──────────────────────────────────────────
   async init() {
@@ -54,10 +53,11 @@ const Auth = {
     this.profile = profile;
 
     if (!this.profile.is_active) {
-      // If we have a pending invite code from signup, try to auto-consume it
-      if (this._pendingCode) {
-        const res = await this.redeemCode(this._pendingCode);
-        this._pendingCode = null;
+      // Check for a pending invite code saved before email confirmation redirect
+      const pendingCode = localStorage.getItem('prepme_pending_code');
+      if (pendingCode) {
+        localStorage.removeItem('prepme_pending_code');
+        const res = await this.redeemCode(pendingCode);
         if (res.ok) {
           await this._launchApp();
           return;
@@ -137,9 +137,9 @@ const Auth = {
 
     if (error) return { ok: false, error: error.message };
 
-    // Store code so _onSignedIn can auto-consume it after session fires
-    this._pendingCode = upper;
-    return { ok: true };
+    // Persist code to localStorage so it survives the email confirmation redirect
+    localStorage.setItem('prepme_pending_code', upper);
+    return { ok: true, confirmEmail: true };
   },
 
   // ── Invite code redemption (initial + re-activation) ──
@@ -298,6 +298,15 @@ function initAuthGate() {
 
       if (!res.ok) {
         toast(res.error || 'Sign up failed.', 'error');
+      } else if (res.confirmEmail) {
+        // Email confirmation required — show message
+        $('auth-register-email').value = '';
+        $('auth-register-password').value = '';
+        $('auth-register-code').value = '';
+        $('auth-pw-strength').classList.add('hidden');
+        toast('Account created! Check your email to confirm, then sign in.', 'success');
+        // Switch to sign in tab
+        $('gate-tab-login').click();
       } else {
         toast('Account created! Signing you in…', 'success');
       }
