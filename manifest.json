@@ -1,0 +1,25 @@
+{
+  "name": "PrepMe — AI Interview Prep",
+  "short_name": "PrepMe",
+  "description": "AI-powered interview preparation workspace",
+  "start_url": "/prepme/",
+  "scope": "/prepme/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -148,7 +148,11 @@ const Admin = {
     btn.disabled = false;
     btn.textContent = '+ Generate Invite Code';
 
-    if (error) { toast('Failed to generate code.', 'error'); return; }
+    if (error) {
+      console.error('[PrepMe] generateCode error:', error);
+      toast(`Failed to generate code: ${error.message || error.code}`, 'error');
+      return;
+    }
     toast(`Code created: ${code}`, 'success');
     this.loadCodes();
   },

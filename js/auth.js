@@ -246,10 +246,12 @@ const Auth = {
   // ── Gate UI ────────────────────────────────────────────
   _showGate() {
     this._hideLoader();
+    document.body.classList.add('gate-open');
     $('auth-gate').classList.remove('hidden');
     $('app').classList.add('hidden');
   },
   _hideGate() {
+    document.body.classList.remove('gate-open');
     $('auth-gate').classList.add('hidden');
   },
   _hideLoader() {
