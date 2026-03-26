@@ -430,7 +430,19 @@ function initAuthGate() {
       toast(error.message, 'error'); return;
     }
     toast('Password updated! Signing you in…', 'success');
-    // SIGNED_IN fires automatically after updateUser — _onSignedIn will launch app
+    // SIGNED_IN fires automatically after updateUser — _onSignedIn will launch app.
+    // Fallback: if the gate is still visible after 2.5s, show a manual sign-in button.
+    const backBtn = $('auth-reset-back-btn');
+    setTimeout(() => {
+      const gateVisible = $('auth-gate') && !$('auth-gate').classList.contains('hidden');
+      if (gateVisible && backBtn) backBtn.classList.remove('hidden');
+    }, 2500);
+  });
+
+  $('auth-reset-back-btn')?.addEventListener('click', () => {
+    Auth._passwordRecovery = false;
+    $('auth-reset-back-btn').classList.add('hidden');
+    Auth._showStep('login');
   });
 
   // ── Invite code re-activation (inactive user) ────────

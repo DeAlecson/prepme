@@ -88,7 +88,7 @@ begin
   ) into result;
   return result;
 end;
-$$ language plpgsql security definer stable;
+$$ language plpgsql security definer;
 
 -- ── RLS Policies ─────────────────────────────────────────
 
