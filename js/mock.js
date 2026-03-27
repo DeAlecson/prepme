@@ -244,6 +244,7 @@ const Mock = {
       <div class="mock-controls">
         <button class="tts-btn tts-on" id="tts-btn" onclick="Mock.toggleTTS()">🔊 Voice On</button>
         <span class="status-chip" id="mock-status-chip">${this.started ? 'In Progress' : 'Ready'}</span>
+        <button class="btn btn-ghost btn-sm" id="mock-end" onclick="Mock.endInterview()">End &amp; Score</button>
       </div>
     `;
 
@@ -261,7 +262,6 @@ const Mock = {
     if (micBtn) micBtn.innerHTML = _micIcon();
 
     $('mock-send').onclick   = () => Mock.sendMessage();
-    $('mock-end').onclick    = () => Mock.endInterview();
     micBtn?.addEventListener('click', () => Mock.toggleMic());
     $('mock-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); Mock.sendMessage(); }

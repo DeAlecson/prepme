@@ -415,17 +415,17 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 .mock-input-bar {
-  padding: 14px 20px;
+  padding: 10px 16px 14px;
   border-top: 1px solid var(--border);
   background: var(--bg2);
-  display: flex; gap: 10px; align-items: flex-end;
+  display: flex; gap: 8px; align-items: flex-end;
   flex-shrink: 0;
 }
 .mock-textarea {
   flex: 1; background: var(--bg3); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 10px 14px;
   color: var(--text); font-size: 13px; resize: none;
-  max-height: 120px; line-height: 1.5;
+  min-height: 52px; max-height: 140px; line-height: 1.5;
   transition: border-color var(--t);
 }
 .mock-textarea:focus { outline: none; border-color: var(--accent); }
@@ -433,7 +433,7 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
 /* ── Mic button ── */
 .mock-mic-btn {
   flex-shrink: 0;
-  width: 38px; height: 38px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   background: var(--bg3); border: 1px solid var(--border);
   color: var(--text-muted);
   display: flex; align-items: center; justify-content: center;
@@ -593,7 +593,7 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
   .mock-header { padding: 10px 14px; gap: 10px; flex-wrap: wrap; }
   .mock-mode-select { width: 100%; overflow-x: auto; padding-bottom: 2px; flex-wrap: nowrap; }
   .mock-mode-select::-webkit-scrollbar { display: none; }
-  .mock-input-bar { padding: 10px 14px; }
+  .mock-input-bar { padding: 8px 12px 12px; gap: 6px; }
   .msg { max-width: 88%; }
 
   .interviewer-card { flex-direction: column; gap: 14px; }
