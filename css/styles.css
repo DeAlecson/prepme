@@ -418,7 +418,7 @@ body.gate-open { overflow: hidden; position: fixed; width: 100%; }
   padding: 10px 16px 14px;
   border-top: 1px solid var(--border);
   background: var(--bg2);
-  display: flex; gap: 8px; align-items: flex-end;
+  display: flex; gap: 8px; align-items: center;
   flex-shrink: 0;
 }
 .mock-textarea {
